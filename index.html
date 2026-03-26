@@ -67,7 +67,9 @@
   .sched-num{font-weight:700;color:var(--blue);font-size:15px;width:24px;flex-shrink:0;}
   .sched-opp{flex:1;font-size:14px;font-weight:600;}
   .sched-date{font-size:13px;color:var(--text-light);}
-  .sched-rainout{font-size:12px;color:var(--orange-text);display:flex;align-items:center;gap:3px;}
+  .sched-rainout{font-size:12px;color:var(--orange-text);display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:3px 8px;border-radius:20px;font-weight:600;transition:background .15s,color .15s;}
+  .sched-rainout.active{background:#fff3e0;color:var(--orange-text);}
+  .sched-opp.rained-out,.sched-date.rained-out{text-decoration:line-through;opacity:.45;}
   .status-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
   .status-done{background:#e8f5e9;color:#388e3c;}
   .status-upcoming{background:#e3f0fb;color:var(--blue);}
@@ -95,7 +97,14 @@
   .batting-num{font-size:17px;font-weight:700;color:var(--blue);width:24px;}
   .batting-name{flex:1;font-size:15px;font-weight:600;}
   .tap-remove{font-size:12px;color:#bbb;}
-  .fielding-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+  .song-play-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#e8f5e9;border:none;font-size:16px;cursor:pointer;text-decoration:none;flex-shrink:0;}
+  .song-play-btn:hover{background:#c8e6c9;}
+  .fielding-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;}
+  .fld-edit-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .fld-edit-lbl{font-size:12px;font-weight:700;color:var(--blue);min-width:62px;text-align:right;}
+  .fld-edit-sel{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:14px;background:white;color:var(--text);outline:none;}
+  .fld-edit-sel:focus{border-color:var(--blue);}
+  body.dark .fld-edit-sel{background:#1a2535;color:#e8f0fe;}
   .field-pos{border:1.5px solid var(--blue);border-radius:10px;padding:8px 6px;text-align:center;background:white;}
   .field-pos.filled{background:#e3f0fb;}
   .field-pos.empty-slot{border-style:dashed;opacity:.5;}
@@ -196,6 +205,21 @@
   body.dark .ico-blue{background:#1a3050;}body.dark .ico-green{background:#1a2e20;}
   body.dark .ico-yellow{background:#2a2515;}body.dark .ico-gray{background:#1e2535;}
   body.dark .ico-red{background:#2a1515;}body.dark .ico-purple{background:#251a2e;}
+  .at-bat-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding-top:8px;border-top:1px solid #f0f4f8;}
+  .ab-stat{display:inline-flex;align-items:stretch;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);}
+  .ab-dec,.ab-inc{padding:5px 8px;font-size:14px;font-weight:700;cursor:pointer;border:none;line-height:1;transition:opacity .1s;}
+  .ab-dec:active,.ab-inc:active{opacity:.5;}
+  .ab-lbl{font-size:11px;font-weight:700;padding:0 4px;display:flex;align-items:center;user-select:none;}
+  .ab-count{font-size:13px;font-weight:800;min-width:20px;text-align:center;display:flex;align-items:center;justify-content:center;padding:0 3px;user-select:none;}
+  .ab-stat.s-H{border-color:#81c784;}.ab-stat.s-H .ab-dec,.ab-stat.s-H .ab-inc{background:#f1f8e9;color:#2e7d32;}.ab-stat.s-H .ab-lbl{background:#f1f8e9;color:#2e7d32;}.ab-stat.s-H .ab-count{background:#c8e6c9;color:#1b5e20;}
+  .ab-stat.s-O{border-color:#e57373;}.ab-stat.s-O .ab-dec,.ab-stat.s-O .ab-inc{background:#fff5f5;color:#c62828;}.ab-stat.s-O .ab-lbl{background:#fff5f5;color:#c62828;}.ab-stat.s-O .ab-count{background:#ffcdd2;color:#b71c1c;}
+  .ab-stat.s-W{border-color:#ffb74d;}.ab-stat.s-W .ab-dec,.ab-stat.s-W .ab-inc{background:#fff8f0;color:#e65100;}.ab-stat.s-W .ab-lbl{background:#fff8f0;color:#e65100;}.ab-stat.s-W .ab-count{background:#ffe0b2;color:#bf360c;}
+  .ab-stat.s-RBI{border-color:#ba68c8;}.ab-stat.s-RBI .ab-dec,.ab-stat.s-RBI .ab-inc{background:#faf0ff;color:#6a1b9a;}.ab-stat.s-RBI .ab-lbl{background:#faf0ff;color:#6a1b9a;}.ab-stat.s-RBI .ab-count{background:#e1bee7;color:#4a148c;}
+  .ab-stat.s-R{border-color:#4fc3f7;}.ab-stat.s-R .ab-dec,.ab-stat.s-R .ab-inc{background:#f0f9ff;color:#01579b;}.ab-stat.s-R .ab-lbl{background:#f0f9ff;color:#01579b;}.ab-stat.s-R .ab-count{background:#b3e5fc;color:#01579b;}
+  body.dark .ab-dec,body.dark .ab-inc,body.dark .ab-lbl{filter:brightness(.8);}body.dark .ab-count{filter:brightness(.7);}
+  .game-log-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
+  .game-log-hdr{background:#f0f4f8;padding:10px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
+  body.dark .game-log-card{background:#1a2535;}body.dark .game-log-hdr{background:#151f2e;}
   @media(max-width:480px){.content-inner{padding:14px 10px 90px;}.fielding-grid{gap:6px;}.field-pos-name{font-size:12px;}}
 </style>
 </head>
@@ -309,8 +333,9 @@
     <div class="nav-right"><button class="moon-btn" onclick="toggleDark()">&#127769;</button></div>
   </div>
   <div class="content"><div class="content-inner">
+    <div class="section-card"><div class="stats-table-wrap"><table class="stats-table" id="batting-tbl"></table></div></div>
     <div class="color-scale">
-      <span style="font-size:12px;color:var(--text-light);">Color scale:</span>
+      <span style="font-size:12px;color:var(--text-light);">Fielding color scale:</span>
       <div class="cs-item"><div class="cs-dot" style="background:#ffcdd2"></div>0 &mdash; never</div>
       <div class="cs-item"><div class="cs-dot" style="background:#fff9c4"></div>low</div>
       <div class="cs-item"><div class="cs-dot" style="background:#c8e6c9"></div>moderate</div>
@@ -321,6 +346,10 @@
     <div class="still-needs">
       <h3>Still Needs to Play</h3>
       <div class="section-card"><div id="snp-list"></div></div>
+    </div>
+    <div class="still-needs" id="game-log-section" style="display:none;">
+      <h3>Game Log</h3>
+      <div id="game-log-list"></div>
     </div>
   </div></div>
   <div class="bottom-nav">
@@ -494,7 +523,8 @@ var PIN=localStorage.getItem('llm-pin')||'1234';
 var pinEntry='';
 var PLAYERS=JSON.parse(localStorage.getItem('llm-players')||'null')||['Owen','Camden','Madden','Caleb','Russel','Eamonn','Arthur','Nathan'];
 var JERSEYS=JSON.parse(localStorage.getItem('llm-jerseys')||'null')||{Owen:'7',Camden:'12',Madden:'3',Caleb:'4',Russel:'5',Eamonn:'6',Arthur:'9',Nathan:'8'};
-var POSITIONS=['Pitcher','1B','2B','SS','3B','LF','CF','RF'];
+var SONGS=JSON.parse(localStorage.getItem('llm-songs')||'null')||{};
+var POSITIONS=['Pitcher','1B','2B','SS','3B','LF','CF','RF','Catcher','LCF'];
 var SCHEDULE=JSON.parse(localStorage.getItem('llm-sched')||'null')||[
   {num:1,opp:'vs Orioles',date:'Apr 15',time:'10:00 AM',loc:'Memorial Park Field 1',ha:'Home',status:'done'},
   {num:2,opp:"vs A's",date:'Apr 18',time:'11:00 AM',loc:'Kipling Elementary - Field 1',ha:'Away',status:'upcoming'},
@@ -511,12 +541,15 @@ var SCHEDULE=JSON.parse(localStorage.getItem('llm-sched')||'null')||[
   {num:13,opp:'vs Royals',date:'Jun 6',time:'9:00 AM',loc:'Memorial Park Field 1',ha:'Home',status:'upcoming'}
 ];
 var seasonStats=JSON.parse(localStorage.getItem('llm-stats')||'null')||buildStats();
+var seasonBatting=JSON.parse(localStorage.getItem('llm-batting')||'null')||{};
+var gameHistory=JSON.parse(localStorage.getItem('llm-game-history')||'null')||[];
 var gamesPlayed=parseInt(localStorage.getItem('llm-games')||'1');
 var presentPlayers=[].concat(PLAYERS);
-var innings=[],mvps=[],pendSched=null,pendRoster=null;
+var innings=[],mvps=[],atBats=[],pendSched=null,pendRoster=null;
 
-function buildStats(){var d={Owen:[1,1,0,0,0,1,0,0],Camden:[1,0,1,0,0,1,0,0],Madden:[0,1,1,0,0,1,0,0],Caleb:[1,0,1,0,0,0,1,0],Russel:[0,1,0,0,0,0,1,1],Eamonn:[0,0,0,1,1,0,1,0],Arthur:[0,0,0,1,1,0,0,1],Nathan:[0,0,0,1,1,0,0,1]};var s={};PLAYERS.forEach(function(p){s[p]=d[p]||[0,0,0,0,0,0,0,0];});return s;}
-function save(){localStorage.setItem('llm-pin',PIN);localStorage.setItem('llm-players',JSON.stringify(PLAYERS));localStorage.setItem('llm-jerseys',JSON.stringify(JERSEYS));localStorage.setItem('llm-sched',JSON.stringify(SCHEDULE));localStorage.setItem('llm-stats',JSON.stringify(seasonStats));localStorage.setItem('llm-games',String(gamesPlayed));}
+function buildStats(){var d={Owen:[1,1,0,0,0,1,0,0,0,0],Camden:[1,0,1,0,0,1,0,0,0,0],Madden:[0,1,1,0,0,1,0,0,0,0],Caleb:[1,0,1,0,0,0,1,0,0,0],Russel:[0,1,0,0,0,0,1,1,0,0],Eamonn:[0,0,0,1,1,0,1,0,0,0],Arthur:[0,0,0,1,1,0,0,1,0,0],Nathan:[0,0,0,1,1,0,0,1,0,0]};var s={};PLAYERS.forEach(function(p){var arr=d[p]||[];while(arr.length<10)arr.push(0);s[p]=arr;});return s;}
+function ensureStats(p){if(!seasonStats[p])seasonStats[p]=[];while(seasonStats[p].length<10)seasonStats[p].push(0);}
+function save(){localStorage.setItem('llm-pin',PIN);localStorage.setItem('llm-players',JSON.stringify(PLAYERS));localStorage.setItem('llm-jerseys',JSON.stringify(JERSEYS));localStorage.setItem('llm-songs',JSON.stringify(SONGS));localStorage.setItem('llm-sched',JSON.stringify(SCHEDULE));localStorage.setItem('llm-stats',JSON.stringify(seasonStats));localStorage.setItem('llm-batting',JSON.stringify(seasonBatting));localStorage.setItem('llm-game-history',JSON.stringify(gameHistory));localStorage.setItem('llm-games',String(gamesPlayed));}
 
 function pp(d){if(pinEntry.length>=4)return;pinEntry+=d;dots();if(pinEntry.length===4)setTimeout(chkPin,200);}
 function pb(){pinEntry=pinEntry.slice(0,-1);dots();document.getElementById('pin-err').textContent='';}
@@ -535,7 +568,7 @@ function darkFromSettings(b){document.body.classList.toggle('dark');syncDT();}
 function syncDT(){var t=document.getElementById('dark-tog');if(t)t.classList.toggle('on',document.body.classList.contains('dark'));}
 
 function renderHome(){
-  var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[SCHEDULE.length-1];
+  var nx=SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;})||SCHEDULE[SCHEDULE.length-1];
   if(nx){
     document.getElementById('h-title').textContent='Game '+nx.num;
     document.getElementById('h-opp').textContent=nx.opp;
@@ -550,14 +583,17 @@ function renderHome(){
   var el=document.getElementById('sched-list');el.innerHTML='';
   SCHEDULE.forEach(function(g){
     var row=document.createElement('div');row.className='schedule-row';
+    var isRainout=g.rainout||false;
     var st=g.status==='done'
       ?'<button class="status-badge status-undo" onclick="event.stopPropagation();undoG('+g.num+')">&#8617; Undo</button><span class="status-badge status-done">Done</span>'
-      :'<span class="sched-rainout">&#9888;&#65039; Rainout</span><span class="status-badge status-upcoming">Upcoming</span>';
-    row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp">'+g.opp+'</span><span class="sched-date">'+g.date+'</span>'+st;
+      :'<button class="sched-rainout'+(isRainout?' active':'')+'" onclick="event.stopPropagation();toggleRainout('+g.num+')">'+(isRainout?'&#9928; Rained Out':'&#9888;&#65039; Rainout')+'</button><span class="status-badge status-upcoming">Upcoming</span>';
+    var ro=isRainout?' rained-out':'';
+    row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp'+ro+'">'+g.opp+'</span><span class="sched-date'+ro+'">'+g.date+'</span>'+st;
     el.appendChild(row);
   });
 }
 function undoG(n){var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.status='upcoming';save();renderHome();showToast('Game '+n+' marked upcoming');}}
+function toggleRainout(n){var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.rainout=!g.rainout;save();renderHome();showToast(g.rainout?'Game '+n+' marked as rainout':'Game '+n+' rainout removed');}}
 function sendText(){var snack=document.getElementById('snack-input').value;var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];showToast('Text ready: '+nx.opp+' @ '+nx.time+(snack?' | Snack: '+snack:''));}
 function goSetup(){
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];
@@ -581,11 +617,34 @@ function renderSetup(){
 function togPresent(n){var i=presentPlayers.indexOf(n);if(i>=0)presentPlayers.splice(i,1);else presentPlayers.push(n);document.getElementById('pr-'+n).classList.toggle('checked',presentPlayers.indexOf(n)>=0);updCount();}
 function updCount(){document.getElementById('pcount').textContent=presentPlayers.length+' of '+PLAYERS.length+' players present';}
 
+function shuffle(arr){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function getPositions(n){
+  if(n>=10)return['Pitcher','Catcher','1B','2B','SS','3B','LF','LCF','CF','RF'];
+  if(n===9)return['Pitcher','1B','2B','SS','3B','LF','LCF','CF','RF'];
+  return['Pitcher','1B','2B','SS','3B','LF','CF','RF'];
+}
 function genLineup(){
   if(!presentPlayers.length){showToast('No players present!');return;}
   innings=[];var n=presentPlayers.length;
-  var pos=['LF','CF','RF','SS','2B','3B','Pitcher','1B'];
-  for(var i=0;i<3;i++){var bat=[];for(var j=0;j<n;j++)bat.push(presentPlayers[(j+i)%n]);var fld={};pos.forEach(function(p,pi){fld[p]=presentPlayers[(pi+i*3)%n];});innings.push({bat:bat,fld:fld});}
+  var pos=getPositions(n);
+  // Track which positions each player has been assigned this game to encourage variety
+  var posCount={};presentPlayers.forEach(function(p){posCount[p]={};});
+  for(var i=0;i<3;i++){
+    var bat=shuffle(presentPlayers);
+    // Build fielding: shuffle players, then assign greedily to positions they haven't played yet
+    var available=shuffle(presentPlayers);
+    var fld={};
+    pos.forEach(function(p){
+      // Prefer a player who hasn't played this position this game
+      var idx=available.findIndex(function(pl){return!posCount[pl][p];});
+      if(idx<0)idx=0;
+      var pl=available.splice(idx,1)[0];
+      fld[p]=pl;
+      posCount[pl][p]=true;
+    });
+    innings.push({bat:bat,fld:fld});
+  }
+  atBats=innings.map(function(inn){return inn.bat.map(function(){return{H:0,O:0,W:0,RBI:0,R:0};});});
   mvps=[];
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];
   document.getElementById('game-title').textContent='Game '+(nx?nx.num:'')+' '+(nx?nx.opp:'');
@@ -597,7 +656,8 @@ function renderGame(){
   var c=document.getElementById('game-container');c.innerHTML='';
   innings.forEach(function(inn,i){
     var d=document.createElement('div');d.className='inning-card';
-    d.innerHTML='<div class="inning-header">Inning '+(i+1)+'</div><div class="inning-section"><div class="inning-section-title">BATTING ORDER</div>'+inn.bat.map(function(p,j){return'<div class="batting-row"><span class="batting-num">'+(j+1)+'</span><span class="batting-name">'+p+'</span><span class="tap-remove">tap to remove</span></div>';}).join('')+'<div class="inning-section-title" style="margin-top:16px;">FIELDING <button class="adjust-btn" onclick="showToast(\'Drag to rearrange\')">&#9998; Adjust</button></div><div class="fielding-grid">'+fldGrid(inn.fld)+'</div></div>';
+    var innIdx=i;
+    d.innerHTML='<div class="inning-header">Inning '+(innIdx+1)+'</div><div class="inning-section"><div class="inning-section-title">BATTING ORDER</div>'+inn.bat.map(function(p,j){var songUrl=SONGS[p]||'';var songBtn=songUrl?'<a class="song-play-btn" href="'+songUrl+'" target="_blank" title="Play '+p+'\'s walk-up song">&#127925;</a>':'';var abBtns=['H','O','W','RBI','R'];var abLabels={H:'H',O:'Out',W:'BB',RBI:'RBI',R:'R'};var abRow='<div class="at-bat-row">'+abBtns.map(function(s){var cnt=atBats[innIdx]&&atBats[innIdx][j]?atBats[innIdx][j][s]:0;return'<div class="ab-stat s-'+s+'"><button class="ab-dec" onclick="decAB('+innIdx+','+j+',\''+s+'\')">&#8722;</button><span class="ab-lbl">'+abLabels[s]+'</span><span class="ab-count" id="ab-'+innIdx+'-'+j+'-'+s+'">'+cnt+'</span><button class="ab-inc" onclick="incAB('+innIdx+','+j+',\''+s+'\')">+</button></div>';}).join('')+'</div>';return'<div class="batting-row" style="flex-wrap:wrap;align-items:flex-start;"><div style="display:flex;align-items:center;gap:6px;width:100%;padding-top:2px;"><span class="batting-num">'+(j+1)+'</span><span class="batting-name">'+p+'</span>'+songBtn+'</div>'+abRow+'</div>';}).join('')+'<div class="inning-section-title" style="margin-top:16px;">FIELDING <button class="adjust-btn" onclick="showFieldingEdit('+innIdx+')">&#9998; Adjust</button></div><div class="fielding-grid" id="fld-grid-'+innIdx+'">'+fldGrid(inn.fld)+'</div></div>';
     c.appendChild(d);
   });
   var mv=document.createElement('div');mv.className='card';
@@ -609,25 +669,92 @@ function renderGame(){
   var btn=document.createElement('button');btn.className='btn btn-green';btn.innerHTML='&#10003; Complete Game';btn.style.marginBottom='20px';btn.onclick=completeGame;
   c.appendChild(btn);
 }
-function fldGrid(fld){return[['LF','CF','RF'],['SS','2B',null],['3B','Pitcher','1B']].map(function(row){return row.map(function(p){if(!p)return'<div></div>';var n=fld[p]||'';return'<div class="field-pos '+(n?'filled':'empty-slot')+'"><div class="field-pos-label">'+p+'</div><div class="field-pos-name">'+(n||'&#8212;')+'</div></div>';}).join('');}).join('');}
+function fldGrid(fld){
+  var hasLCF='LCF' in fld,hasCatcher='Catcher' in fld;
+  var layout=hasLCF
+    ?[['LF','LCF','CF','RF'],[null,'SS','2B',null],['3B','Pitcher','1B',null]].concat(hasCatcher?[[null,'Catcher',null,null]]:[])
+    :[['LF',null,'CF','RF'],[null,'SS','2B',null],['3B','Pitcher','1B',null]];
+  return layout.map(function(row){return row.map(function(p){if(!p)return'<div></div>';var n=fld[p]||'';return'<div class="field-pos '+(n?'filled':'empty-slot')+'"><div class="field-pos-label">'+p+'</div><div class="field-pos-name">'+(n||'&#8212;')+'</div></div>';}).join('');}).join('');
+}
+function incAB(inn,bat,stat){if(!atBats[inn]||!atBats[inn][bat])return;atBats[inn][bat][stat]++;var el=document.getElementById('ab-'+inn+'-'+bat+'-'+stat);if(el)el.textContent=atBats[inn][bat][stat];}
+function decAB(inn,bat,stat){if(!atBats[inn]||!atBats[inn][bat])return;if(atBats[inn][bat][stat]>0)atBats[inn][bat][stat]--;var el=document.getElementById('ab-'+inn+'-'+bat+'-'+stat);if(el)el.textContent=atBats[inn][bat][stat];}
+function showFieldingEdit(innIdx){
+  var inn=innings[innIdx];
+  var gridEl=document.getElementById('fld-grid-'+innIdx);
+  var positions=Object.keys(inn.fld);
+  var html='<div style="padding:4px 0;">';
+  positions.forEach(function(p){
+    var selId='fe-'+innIdx+'-'+p.replace(/[^a-zA-Z0-9]/g,'');
+    html+='<div class="fld-edit-row"><span class="fld-edit-lbl">'+p+'</span><select class="fld-edit-sel" id="'+selId+'">';
+    presentPlayers.forEach(function(pl){html+='<option value="'+pl+'"'+(inn.fld[p]===pl?' selected':'')+'>'+pl+'</option>';});
+    html+='</select></div>';
+  });
+  html+='</div><div style="display:flex;gap:8px;margin-top:4px;">';
+  html+='<button class="btn btn-outline btn-sm" style="flex:1;" onclick="cancelFieldingEdit('+innIdx+')">Cancel</button>';
+  html+='<button class="btn btn-primary btn-sm" style="flex:1;" onclick="saveFieldingEdit('+innIdx+')">&#10003; Save</button>';
+  html+='</div>';
+  gridEl.style.display='block';
+  gridEl.innerHTML=html;
+}
+function saveFieldingEdit(innIdx){
+  var inn=innings[innIdx];
+  Object.keys(inn.fld).forEach(function(p){
+    var sel=document.getElementById('fe-'+innIdx+'-'+p.replace(/[^a-zA-Z0-9]/g,''));
+    if(sel)inn.fld[p]=sel.value;
+  });
+  cancelFieldingEdit(innIdx);
+  showToast('Fielding updated!');
+}
+function cancelFieldingEdit(innIdx){
+  var gridEl=document.getElementById('fld-grid-'+innIdx);
+  gridEl.style.display='';
+  gridEl.innerHTML=fldGrid(innings[innIdx].fld);
+}
 function togMVP(n,el){var i=mvps.indexOf(n);if(i>=0){mvps.splice(i,1);el.classList.remove('selected');}else{if(mvps.length>=2){showToast('Max 2 players');return;}mvps.push(n);el.classList.add('selected');}}
 function saveMVP(){if(!mvps.length){showToast('Select at least 1');return;}showToast('MVP: '+mvps.join(' & '));}
 function completeGame(){
-  var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7};
-  innings.forEach(function(inn){Object.keys(inn.fld).forEach(function(pos){var pl=inn.fld[pos];if(pm[pos]!==undefined&&pl){if(!seasonStats[pl])seasonStats[pl]=[0,0,0,0,0,0,0,0];seasonStats[pl][pm[pos]]++;}});});
+  var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7,'Catcher':8,'LCF':9};
+  var nx=SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;});
+  // Aggregate batting stats per player for this game
+  var gameBatting={};
+  innings.forEach(function(inn,i){inn.bat.forEach(function(p,j){if(!gameBatting[p])gameBatting[p]={H:0,O:0,W:0,RBI:0,R:0};var ab=atBats[i]&&atBats[i][j]?atBats[i][j]:{H:0,O:0,W:0,RBI:0,R:0};['H','O','W','RBI','R'].forEach(function(s){gameBatting[p][s]+=(ab[s]||0);});});});
+  // Merge into season batting totals
+  PLAYERS.forEach(function(p){if(!seasonBatting[p])seasonBatting[p]={H:0,O:0,W:0,RBI:0,R:0};if(gameBatting[p])['H','O','W','RBI','R'].forEach(function(s){seasonBatting[p][s]+=(gameBatting[p][s]||0);});});
+  // Save game history entry
+  gameHistory.push({gameNum:nx?nx.num:gamesPlayed+1,opp:nx?nx.opp:'',date:nx?nx.date:'',batting:gameBatting,mvps:mvps.slice()});
+  // Aggregate fielding stats
+  innings.forEach(function(inn){Object.keys(inn.fld).forEach(function(pos){var pl=inn.fld[pos];if(pm[pos]!==undefined&&pl){ensureStats(pl);seasonStats[pl][pm[pos]]++;}});});
   gamesPlayed++;
-  var nx=SCHEDULE.find(function(g){return g.status==='upcoming';});if(nx)nx.status='done';
+  if(nx)nx.status='done';
   save();showToast('Game complete! Great job team!');setTimeout(function(){go('screen-home');},1500);
 }
 
 function renderHistory(){
   document.getElementById('hist-sub').textContent=gamesPlayed+' game'+(gamesPlayed!==1?'s':'')+' played';
-  var pl=['Pitcher','1B','2B','SS','3B','LF','CF','RF','Total','MVP'];
-  document.getElementById('stats-tbl').innerHTML='<thead><tr><th>Player</th>'+pl.map(function(p){return'<th>'+p+'</th>';}).join('')+'</tr></thead><tbody>'+PLAYERS.map(function(p){var c=seasonStats[p]||[0,0,0,0,0,0,0,0];var t=c.reduce(function(a,b){return a+b;},0);return'<tr><td>'+p+'</td>'+c.map(function(v){return'<td><span class="cell-badge c'+Math.min(v,3)+'">'+v+'</span></td>';}).join('')+'<td style="font-weight:700;">'+t+'</td><td>&#8212;</td></tr>';}).join('')+'</tbody>';
+  // Batting stats table
+  document.getElementById('batting-tbl').innerHTML='<thead><tr><th>Player</th><th>H</th><th>Out</th><th>BB</th><th>RBI</th><th>R</th><th>AVG</th></tr></thead><tbody>'+PLAYERS.map(function(p){var b=seasonBatting[p]||{H:0,O:0,W:0,RBI:0,R:0};var ab=b.H+b.O;var avg=ab>0?(b.H/ab).toFixed(3).replace(/^0/,''):'.---';return'<tr><td>'+p+'</td><td>'+b.H+'</td><td>'+b.O+'</td><td>'+b.W+'</td><td>'+b.RBI+'</td><td>'+b.R+'</td><td style="font-weight:700;">'+avg+'</td></tr>';}).join('')+'</tbody>';
+  // Fielding stats table
+  var pl=['Pitcher','C','1B','2B','SS','3B','LF','LCF','CF','RF','Total'];
+  document.getElementById('stats-tbl').innerHTML='<thead><tr><th>Player</th>'+pl.map(function(p){return'<th>'+p+'</th>';}).join('')+'</tr></thead><tbody>'+PLAYERS.map(function(p){ensureStats(p);var c=seasonStats[p];var t=c.reduce(function(a,b){return a+b;},0);return'<tr><td>'+p+'</td>'+c.map(function(v){return'<td><span class="cell-badge c'+Math.min(v,3)+'">'+v+'</span></td>';}).join('')+'<td style="font-weight:700;">'+t+'</td></tr>';}).join('')+'</tbody>';
+  // Still needs
   var el=document.getElementById('snp-list');el.innerHTML='';
-  var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7};
+  var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7,'Catcher':8,'LCF':9};
   POSITIONS.forEach(function(pos){var needs=PLAYERS.filter(function(p){return!(seasonStats[p]&&seasonStats[p][pm[pos]]);});if(needs.length){var r=document.createElement('div');r.className='snp-row';r.innerHTML='<span class="snp-pos">'+pos+'</span><span class="snp-names">'+needs.join(', ')+'</span>';el.appendChild(r);}});
   if(!el.children.length)el.innerHTML='<div class="snp-row"><span style="color:var(--text-light)">All players covered every position!</span></div>';
+  // Game log
+  var logSection=document.getElementById('game-log-section');
+  var logList=document.getElementById('game-log-list');
+  logList.innerHTML='';
+  if(gameHistory.length){
+    logSection.style.display='';
+    gameHistory.slice().reverse().forEach(function(game){
+      var card=document.createElement('div');card.className='game-log-card';
+      var rows=PLAYERS.filter(function(p){return game.batting&&game.batting[p];}).map(function(p){var b=game.batting[p];var ab=b.H+b.O;var avg=ab>0?(b.H/ab).toFixed(3).replace(/^0/,''):'.---';return'<tr><td>'+p+'</td><td>'+b.H+'</td><td>'+b.O+'</td><td>'+b.W+'</td><td>'+b.RBI+'</td><td>'+b.R+'</td><td style="font-weight:700;">'+avg+'</td></tr>';}).join('');
+      var mvpStr=game.mvps&&game.mvps.length?'&#127942; '+game.mvps.join(' & '):'';
+      card.innerHTML='<div class="game-log-hdr"><span>Game '+game.gameNum+' '+game.opp+'</span><span style="font-size:12px;color:var(--text-light);">'+game.date+(mvpStr?' &nbsp;'+mvpStr:'')+'</span></div><div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Player</th><th>H</th><th>Out</th><th>BB</th><th>RBI</th><th>R</th><th>AVG</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+      logList.appendChild(card);
+    });
+  }else{logSection.style.display='none';}
 }
 
 function renderSettingsLabels(){document.getElementById('sched-lbl').textContent=SCHEDULE.length+' games loaded';document.getElementById('roster-lbl').textContent=PLAYERS.length+' players loaded';syncDT();}
@@ -685,22 +812,29 @@ function applyData(type){
 }
 function renderSchedEditor(){
   var el=document.getElementById('sched-manual-rows');el.innerHTML='';
-  SCHEDULE.forEach(function(g,i){var row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:32px 1fr 80px;gap:6px;margin-bottom:8px;align-items:center;';row.innerHTML='<div style="text-align:center;font-weight:700;color:var(--blue);font-size:13px;">'+g.num+'</div><input class="r-input" value="'+g.opp+'" id="ms-opp-'+i+'" placeholder="vs Team" style="font-size:13px;padding:7px 10px;"><input class="r-num" value="'+g.date+'" id="ms-date-'+i+'" placeholder="Date" style="width:100%;font-size:12px;padding:7px 8px;letter-spacing:0;">';el.appendChild(row);});
+  SCHEDULE.forEach(function(g,i){var row=document.createElement('div');row.style.cssText='display:grid;grid-template-columns:32px 1fr 80px 34px;gap:6px;margin-bottom:8px;align-items:center;';row.innerHTML='<div style="text-align:center;font-weight:700;color:var(--blue);font-size:13px;">'+g.num+'</div><input class="r-input" value="'+g.opp+'" id="ms-opp-'+i+'" placeholder="vs Team" style="font-size:13px;padding:7px 10px;"><input class="r-num" value="'+g.date+'" id="ms-date-'+i+'" placeholder="Date" style="width:100%;font-size:12px;padding:7px 8px;letter-spacing:0;"><button class="r-del" onclick="delSchedRow('+i+')">&#10005;</button>';el.appendChild(row);});
 }
 function addSchedRow(){SCHEDULE.push({num:SCHEDULE.length+1,opp:'',date:'',time:'10:00 AM',loc:'',ha:'Home',status:'upcoming'});renderSchedEditor();}
+function delSchedRow(i){if(SCHEDULE.length<=1){showToast('Need at least 1 game');return;}SCHEDULE.splice(i,1);SCHEDULE.forEach(function(g,idx){g.num=idx+1;});renderSchedEditor();}
 function saveManualSched(){SCHEDULE.forEach(function(g,i){var o=document.getElementById('ms-opp-'+i);var d=document.getElementById('ms-date-'+i);if(o)g.opp=o.value;if(d)g.date=d.value;});save();document.getElementById('sched-lbl').textContent=SCHEDULE.length+' games loaded';showToast('Schedule saved');togglePanel('p-sched');}
 function renderRosterEditor(){
   var el=document.getElementById('roster-manual-rows');el.innerHTML='';
-  PLAYERS.forEach(function(p,i){var row=document.createElement('div');row.className='r-row';row.id='rr-'+i;row.innerHTML='<input class="r-input" value="'+p+'" id="rn-'+i+'" placeholder="Player name"><input class="r-num" value="'+(JERSEYS[p]||'')+'" id="rj-'+i+'" placeholder="#" maxlength="3"><button class="r-del" onclick="delRR('+i+')">&#10005;</button>';el.appendChild(row);});
+  PLAYERS.forEach(function(p,i){
+    var row=document.createElement('div');row.className='r-row';row.id='rr-'+i;row.style.flexWrap='wrap';
+    var songVal=(SONGS[p]||'').replace(/"/g,'&quot;');
+    row.innerHTML='<input class="r-input" value="'+p+'" id="rn-'+i+'" placeholder="Player name"><input class="r-num" value="'+(JERSEYS[p]||'')+'" id="rj-'+i+'" placeholder="#" maxlength="3"><button class="r-del" onclick="delRR('+i+')">&#10005;</button><input class="r-input" value="'+songVal+'" id="rs-'+i+'" placeholder="&#127925; Walk-up song URL (YouTube or Spotify)" style="font-size:12px;padding:7px 10px;flex-basis:100%;margin-top:-2px;">';
+    el.appendChild(row);
+  });
 }
 function addRosterRow(){PLAYERS.push('New Player');renderRosterEditor();}
 function delRR(i){if(PLAYERS.length<=1){showToast('Need at least 1 player');return;}PLAYERS.splice(i,1);renderRosterEditor();}
 function saveManualRoster(){
-  var updated=[],jerseys={};
-  PLAYERS.forEach(function(_,i){var n=document.getElementById('rn-'+i);var j=document.getElementById('rj-'+i);if(n&&n.value.trim()){updated.push(n.value.trim());jerseys[n.value.trim()]=j?j.value.trim():'';}});
+  var updated=[],jerseys={},songs={};
+  PLAYERS.forEach(function(_,i){var n=document.getElementById('rn-'+i);var j=document.getElementById('rj-'+i);var s=document.getElementById('rs-'+i);if(n&&n.value.trim()){var name=n.value.trim();updated.push(name);jerseys[name]=j?j.value.trim():'';if(s&&s.value.trim())songs[name]=s.value.trim();}});
   if(!updated.length){showToast('No valid players');return;}
   PLAYERS.length=0;updated.forEach(function(p){PLAYERS.push(p);});
   Object.keys(JERSEYS).forEach(function(k){delete JERSEYS[k];});Object.assign(JERSEYS,jerseys);
+  Object.keys(SONGS).forEach(function(k){delete SONGS[k];});Object.assign(SONGS,songs);
   PLAYERS.forEach(function(p){if(!seasonStats[p])seasonStats[p]=[0,0,0,0,0,0,0,0];});
   save();document.getElementById('roster-lbl').textContent=PLAYERS.length+' players loaded';showToast('Roster saved \u2014 '+PLAYERS.length+' players');togglePanel('p-roster');
 }
@@ -713,7 +847,7 @@ function changePin(){
   PIN=nw;save();['pin-cur','pin-new','pin-con'].forEach(function(id){document.getElementById(id).value='';});showToast('PIN updated successfully');togglePanel('p-pin');
 }
 function exportCSV(){var csv='Player,Pitcher,1B,2B,SS,3B,LF,CF,RF,Total\n';PLAYERS.forEach(function(p){var c=seasonStats[p]||[0,0,0,0,0,0,0,0];csv+=[p].concat(c).concat([c.reduce(function(a,b){return a+b;},0)]).join(',')+'\n';});var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='season-stats.csv';a.click();showToast('Stats exported');}
-function resetStats(){if(confirm('Reset all season stats? This cannot be undone.')){PLAYERS.forEach(function(p){seasonStats[p]=[0,0,0,0,0,0,0,0];});gamesPlayed=0;save();showToast('Stats reset');}}
+function resetStats(){if(confirm('Reset all season stats? This cannot be undone.')){PLAYERS.forEach(function(p){seasonStats[p]=[0,0,0,0,0,0,0,0];seasonBatting[p]={H:0,O:0,W:0,RBI:0,R:0};});gameHistory=[];gamesPlayed=0;save();showToast('Stats reset');}}
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
 
 renderHome();renderSetup();
