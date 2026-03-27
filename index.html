@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Little League Manager</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{--blue:#00aeef;--blue-dark:#0093cc;--green:#4caf50;--yellow:#ffc107;--red-light:#ffcdd2;--red-text:#e53935;--orange-text:#ef6c00;--yellow-light:#fff9c4;--yellow-text:#f9a825;--bg:#f0f4f8;--white:#fff;--text:#1a2a3a;--text-light:#6b7c93;--border:#d0dae6;--shadow:0 2px 12px rgba(0,0,0,.10);--radius:14px;}
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -220,14 +221,34 @@
   .game-log-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
   .game-log-hdr{background:#f0f4f8;padding:10px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;}
   body.dark .game-log-card{background:#1a2535;}body.dark .game-log-hdr{background:#151f2e;}
+  /* SYNC / LOADING */
+  #screen-loading{background:var(--bg);align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+  .app-spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:llmspin .8s linear infinite;}
+  @keyframes llmspin{to{transform:rotate(360deg);}}
+  .sync-bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--blue);z-index:10000;opacity:0;transition:opacity .3s;pointer-events:none;}
+  .sync-bar.syncing{opacity:1;animation:llmsyncpulse 1.2s ease-in-out infinite;}
+  @keyframes llmsyncpulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;transition:background .4s;}
+  .sync-dot.online{background:#4caf50;}.sync-dot.offline{background:#ffc107;}.sync-dot.syncing{background:var(--blue);animation:llmsyncpulse 1s infinite;}
+  .coach-badge{background:#e3f0fb;color:var(--blue);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;}
+  body.dark .coach-badge{background:#1a3050;}
   @media(max-width:480px){.content-inner{padding:14px 10px 90px;}.fielding-grid{gap:6px;}.field-pos-name{font-size:12px;}}
 </style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
+<div class="sync-bar" id="sync-bar"></div>
+
+<!-- LOADING -->
+<div class="screen active" id="screen-loading">
+  <span style="font-size:58px;">&#x26BE;</span>
+  <div style="font-size:20px;font-weight:800;color:var(--blue);">Little League Manager</div>
+  <div class="app-spinner"></div>
+  <div id="loading-msg" style="font-size:13px;color:var(--text-light);">Connecting...</div>
+</div>
 
 <!-- PIN -->
-<div class="screen active" id="screen-pin">
+<div class="screen" id="screen-pin">
   <div class="pin-box">
     <div style="font-size:58px;margin-bottom:10px;">&#x26BE;</div>
     <div class="pin-title">Little League Manager</div>
@@ -251,7 +272,7 @@
   <div class="home-header">
     <span style="font-size:28px;">&#x26BE;</span>
     <div><div class="app-name">Little League Manager</div><div class="app-sub">Youth T-Ball Team Dashboard</div></div>
-    <div style="margin-left:auto;"><button class="moon-btn" onclick="toggleDark()">&#127769;</button></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;"><span id="sync-dot-home" class="sync-dot offline" title="Offline"></span><span id="coach-badge-home" class="coach-badge" style="display:none;">Coach</span><button class="moon-btn" onclick="toggleDark()">&#127769;</button></div>
   </div>
   <div class="content"><div class="content-inner">
     <div class="card">
@@ -489,6 +510,29 @@
       </div>
     </div>
 
+    <div class="sg-title">Coach Access</div>
+    <div class="s-card">
+      <div class="s-item" onclick="togglePanel('p-coach')">
+        <div class="s-ico ico-blue">&#9889;</div>
+        <div class="s-lbl"><strong>Coach Login</strong><span id="coach-status-lbl">Not signed in &mdash; read only</span></div>
+        <span class="s-chev" id="chev-p-coach">&#8250;</span>
+      </div>
+      <div class="up-panel" id="p-coach">
+        <div id="coach-login-form">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+            <input class="r-input" type="email" id="coach-email" placeholder="Coach email" autocomplete="email">
+            <input class="r-input" type="password" id="coach-password" placeholder="Password" autocomplete="current-password">
+          </div>
+          <div style="color:var(--red-text);font-size:12px;min-height:16px;margin-bottom:8px;" id="coach-err"></div>
+          <button class="btn btn-primary" style="margin-bottom:0;" onclick="coachLogin()">Sign In as Coach</button>
+        </div>
+        <div id="coach-logout-form" style="display:none;">
+          <div style="font-size:13px;margin-bottom:12px;color:var(--text-light);">Signed in as <strong id="coach-email-lbl"></strong></div>
+          <button class="btn btn-outline" style="margin-bottom:0;" onclick="coachLogout()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
     <div class="sg-title">Data</div>
     <div class="s-card">
       <div class="s-item" onclick="exportCSV()">
@@ -519,6 +563,13 @@
 </div>
 
 <script>
+// ── Supabase ──────────────────────────────────────────────────────
+var SUPABASE_URL='%%SUPABASE_URL%%';
+var SUPABASE_ANON_KEY='%%SUPABASE_ANON_KEY%%';
+var db=null;
+var isCoach=false;
+var dbReady=false;
+// ─────────────────────────────────────────────────────────────────
 var PIN=localStorage.getItem('llm-pin')||'1234';
 var pinEntry='';
 var PLAYERS=JSON.parse(localStorage.getItem('llm-players')||'null')||['Owen','Camden','Madden','Caleb','Russel','Eamonn','Arthur','Nathan'];
@@ -549,7 +600,127 @@ var innings=[],mvps=[],atBats=[],pendSched=null,pendRoster=null;
 
 function buildStats(){var d={Owen:[1,1,0,0,0,1,0,0,0,0],Camden:[1,0,1,0,0,1,0,0,0,0],Madden:[0,1,1,0,0,1,0,0,0,0],Caleb:[1,0,1,0,0,0,1,0,0,0],Russel:[0,1,0,0,0,0,1,1,0,0],Eamonn:[0,0,0,1,1,0,1,0,0,0],Arthur:[0,0,0,1,1,0,0,1,0,0],Nathan:[0,0,0,1,1,0,0,1,0,0]};var s={};PLAYERS.forEach(function(p){var arr=d[p]||[];while(arr.length<10)arr.push(0);s[p]=arr;});return s;}
 function ensureStats(p){if(!seasonStats[p])seasonStats[p]=[];while(seasonStats[p].length<10)seasonStats[p].push(0);}
-function save(){localStorage.setItem('llm-pin',PIN);localStorage.setItem('llm-players',JSON.stringify(PLAYERS));localStorage.setItem('llm-jerseys',JSON.stringify(JERSEYS));localStorage.setItem('llm-songs',JSON.stringify(SONGS));localStorage.setItem('llm-sched',JSON.stringify(SCHEDULE));localStorage.setItem('llm-stats',JSON.stringify(seasonStats));localStorage.setItem('llm-batting',JSON.stringify(seasonBatting));localStorage.setItem('llm-game-history',JSON.stringify(gameHistory));localStorage.setItem('llm-games',String(gamesPlayed));}
+function saveLocal(){localStorage.setItem('llm-pin',PIN);localStorage.setItem('llm-players',JSON.stringify(PLAYERS));localStorage.setItem('llm-jerseys',JSON.stringify(JERSEYS));localStorage.setItem('llm-songs',JSON.stringify(SONGS));localStorage.setItem('llm-sched',JSON.stringify(SCHEDULE));localStorage.setItem('llm-stats',JSON.stringify(seasonStats));localStorage.setItem('llm-batting',JSON.stringify(seasonBatting));localStorage.setItem('llm-game-history',JSON.stringify(gameHistory));localStorage.setItem('llm-games',String(gamesPlayed));}
+function save(){saveLocal();if(db&&isCoach){pushToSupabase().catch(function(e){console.warn('Supabase save failed:',e);setSyncStatus('offline');});}}
+
+// ── Supabase init & sync ──────────────────────────────────────────
+async function initApp(){
+  document.getElementById('loading-msg').textContent='Connecting...';
+  if(!SUPABASE_URL||SUPABASE_URL==='%%SUPABASE_URL%%'){
+    document.getElementById('loading-msg').textContent='Running in offline mode';
+    setTimeout(finishLoading,800);return;
+  }
+  try{
+    db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    var s=await db.auth.getSession();
+    if(s.data&&s.data.session){isCoach=true;}
+    db.auth.onAuthStateChange(function(_,session){isCoach=!!session;applyCoachUI();});
+    var timer=setTimeout(function(){document.getElementById('loading-msg').textContent='Taking longer than usual...';},3000);
+    await pullFromSupabase();
+    clearTimeout(timer);
+    dbReady=true;
+    setSyncStatus('online');
+  }catch(e){
+    console.warn('Supabase unavailable, using local cache:',e);
+    setSyncStatus('offline');
+  }
+  finishLoading();
+}
+function finishLoading(){
+  document.getElementById('screen-loading').classList.remove('active');
+  document.getElementById('screen-pin').classList.add('active');
+  renderHome();renderSetup();
+}
+
+async function pullFromSupabase(){
+  setSyncStatus('syncing');
+  var res=await Promise.all([
+    db.from('llm_config').select('*').eq('id','default').maybeSingle(),
+    db.from('llm_players').select('*').order('sort_order'),
+    db.from('llm_schedule').select('*').order('num'),
+    db.from('llm_stats').select('*'),
+    db.from('llm_season_batting').select('*'),
+    db.from('llm_game_history').select('*').order('completed_at')
+  ]);
+  var cfg=res[0].data,players=res[1].data,sched=res[2].data,stats=res[3].data,batting=res[4].data,hist=res[5].data;
+  if(cfg){PIN=cfg.pin||PIN;gamesPlayed=cfg.games_played!=null?cfg.games_played:gamesPlayed;}
+  if(players&&players.length){
+    PLAYERS.length=0;Object.keys(JERSEYS).forEach(function(k){delete JERSEYS[k];});Object.keys(SONGS).forEach(function(k){delete SONGS[k];});
+    players.forEach(function(p){PLAYERS.push(p.name);if(p.jersey)JERSEYS[p.name]=p.jersey;if(p.song_url)SONGS[p.name]=p.song_url;});
+  }
+  if(sched&&sched.length){
+    SCHEDULE.length=0;
+    sched.forEach(function(g){SCHEDULE.push({num:g.num,opp:g.opp,date:g.game_date,time:g.game_time,loc:g.loc,ha:g.ha,status:g.status,rainout:g.rainout||false});});
+  }
+  if(stats)stats.forEach(function(r){seasonStats[r.player_name]=r.counts;});
+  if(batting)batting.forEach(function(r){seasonBatting[r.player_name]={H:r.h,O:r.o,W:r.w,RBI:r.rbi,R:r.r};});
+  if(hist)gameHistory=hist.map(function(g){return{gameNum:g.game_num,opp:g.opp,date:g.game_date,batting:g.batting,mvps:g.mvps||[]};});
+  saveLocal();
+}
+
+async function pushToSupabase(){
+  if(!db||!isCoach)return;
+  setSyncStatus('syncing');
+  await db.from('llm_config').upsert({id:'default',pin:PIN,games_played:gamesPlayed,updated_at:new Date().toISOString()});
+  await db.from('llm_players').delete().neq('id',0);
+  if(PLAYERS.length)await db.from('llm_players').insert(PLAYERS.map(function(p,i){return{name:p,jersey:JERSEYS[p]||null,song_url:SONGS[p]||null,sort_order:i};}));
+  await db.from('llm_schedule').delete().neq('id',0);
+  if(SCHEDULE.length)await db.from('llm_schedule').insert(SCHEDULE.map(function(g){return{num:g.num,opp:g.opp,game_date:g.date,game_time:g.time,loc:g.loc,ha:g.ha,status:g.status,rainout:g.rainout||false};}));
+  var sRows=PLAYERS.map(function(p){ensureStats(p);return{player_name:p,counts:seasonStats[p]};});
+  if(sRows.length)await db.from('llm_stats').upsert(sRows,{onConflict:'player_name'});
+  var bRows=PLAYERS.map(function(p){var b=seasonBatting[p]||{H:0,O:0,W:0,RBI:0,R:0};return{player_name:p,h:b.H,o:b.O,w:b.W,rbi:b.RBI,r:b.R};});
+  if(bRows.length)await db.from('llm_season_batting').upsert(bRows,{onConflict:'player_name'});
+  // Game history: only insert rows not already in DB (keyed by game_num)
+  if(gameHistory.length){
+    var existing=await db.from('llm_game_history').select('game_num');
+    var existNums=new Set((existing.data||[]).map(function(r){return r.game_num;}));
+    var newRows=gameHistory.filter(function(g){return!existNums.has(g.gameNum);}).map(function(g){return{game_num:g.gameNum,opp:g.opp,game_date:g.date,batting:g.batting,mvps:g.mvps||[]};});
+    if(newRows.length)await db.from('llm_game_history').insert(newRows);
+  }
+  setSyncStatus('online');
+}
+
+// ── Sync status UI ────────────────────────────────────────────────
+function setSyncStatus(state){
+  var bar=document.getElementById('sync-bar');
+  if(bar)bar.className='sync-bar'+(state==='syncing'?' syncing':'');
+  document.querySelectorAll('.sync-dot').forEach(function(d){d.className='sync-dot '+state;d.title=state==='online'?'Synced':state==='syncing'?'Syncing...':'Offline — cached data';});
+}
+
+// ── Coach auth ────────────────────────────────────────────────────
+async function coachLogin(){
+  var email=document.getElementById('coach-email').value.trim();
+  var pw=document.getElementById('coach-password').value;
+  var errEl=document.getElementById('coach-err');
+  errEl.textContent='';
+  if(!db){errEl.textContent='Supabase not configured.';return;}
+  if(!email||!pw){errEl.textContent='Enter email and password.';return;}
+  var {data,error}=await db.auth.signInWithPassword({email:email,password:pw});
+  if(error){errEl.textContent=error.message;return;}
+  isCoach=true;
+  document.getElementById('coach-password').value='';
+  applyCoachUI();
+  showToast('Coach mode active');
+  togglePanel('p-coach');
+}
+async function coachLogout(){
+  if(db)await db.auth.signOut();
+  isCoach=false;
+  applyCoachUI();
+  showToast('Signed out');
+}
+function applyCoachUI(){
+  var loginForm=document.getElementById('coach-login-form');
+  var logoutForm=document.getElementById('coach-logout-form');
+  var statusLbl=document.getElementById('coach-status-lbl');
+  var badge=document.getElementById('coach-badge-home');
+  if(loginForm)loginForm.style.display=isCoach?'none':'';
+  if(logoutForm)logoutForm.style.display=isCoach?'':'none';
+  if(statusLbl)statusLbl.textContent=isCoach?'Signed in \u2014 editing enabled':'Not signed in \u2014 read only';
+  if(badge)badge.style.display=isCoach?'':'none';
+  if(isCoach&&db){db.auth.getUser().then(function(r){var el=document.getElementById('coach-email-lbl');if(el&&r.data&&r.data.user)el.textContent=r.data.user.email;});}
+}
+function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
 
 function pp(d){if(pinEntry.length>=4)return;pinEntry+=d;dots();if(pinEntry.length===4)setTimeout(chkPin,200);}
 function pb(){pinEntry=pinEntry.slice(0,-1);dots();document.getElementById('pin-err').textContent='';}
@@ -592,10 +763,11 @@ function renderHome(){
     el.appendChild(row);
   });
 }
-function undoG(n){var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.status='upcoming';save();renderHome();showToast('Game '+n+' marked upcoming');}}
-function toggleRainout(n){var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.rainout=!g.rainout;save();renderHome();showToast(g.rainout?'Game '+n+' marked as rainout':'Game '+n+' rainout removed');}}
+function undoG(n){if(!requireCoach())return;var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.status='upcoming';save();renderHome();showToast('Game '+n+' marked upcoming');}}
+function toggleRainout(n){if(!requireCoach())return;var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.rainout=!g.rainout;save();renderHome();showToast(g.rainout?'Game '+n+' marked as rainout':'Game '+n+' rainout removed');}}
 function sendText(){var snack=document.getElementById('snack-input').value;var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];showToast('Text ready: '+nx.opp+' @ '+nx.time+(snack?' | Snack: '+snack:''));}
 function goSetup(){
+  if(!requireCoach())return;
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];
   if(nx){document.getElementById('setup-title').textContent='Game '+nx.num+' Setup';document.getElementById('setup-sub').textContent=nx.opp+' \u00b7 '+nx.date;document.getElementById('su-time').textContent=nx.time;document.getElementById('su-loc').textContent=nx.loc;document.getElementById('su-opp').textContent=nx.opp;var ha=document.getElementById('su-ha');ha.textContent=(nx.ha||'Away').toUpperCase();ha.style.background=(nx.ha||'').toLowerCase()==='home'?'#e8f5e9':'#e3f0fb';ha.style.color=(nx.ha||'').toLowerCase()==='home'?'#388e3c':'var(--blue)';}
   presentPlayers=PLAYERS.slice();
@@ -624,6 +796,7 @@ function getPositions(n){
   return['Pitcher','1B','2B','SS','3B','LF','CF','RF'];
 }
 function genLineup(){
+  if(!requireCoach())return;
   if(!presentPlayers.length){showToast('No players present!');return;}
   innings=[];var n=presentPlayers.length;
   var pos=getPositions(n);
@@ -713,6 +886,7 @@ function cancelFieldingEdit(innIdx){
 function togMVP(n,el){var i=mvps.indexOf(n);if(i>=0){mvps.splice(i,1);el.classList.remove('selected');}else{if(mvps.length>=2){showToast('Max 2 players');return;}mvps.push(n);el.classList.add('selected');}}
 function saveMVP(){if(!mvps.length){showToast('Select at least 1');return;}showToast('MVP: '+mvps.join(' & '));}
 function completeGame(){
+  if(!requireCoach())return;
   var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7,'Catcher':8,'LCF':9};
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;});
   // Aggregate batting stats per player for this game
@@ -757,9 +931,11 @@ function renderHistory(){
   }else{logSection.style.display='none';}
 }
 
-function renderSettingsLabels(){document.getElementById('sched-lbl').textContent=SCHEDULE.length+' games loaded';document.getElementById('roster-lbl').textContent=PLAYERS.length+' players loaded';syncDT();}
+function renderSettingsLabels(){document.getElementById('sched-lbl').textContent=SCHEDULE.length+' games loaded';document.getElementById('roster-lbl').textContent=PLAYERS.length+' players loaded';syncDT();applyCoachUI();}
 
 function togglePanel(id){
+  var editPanels=['p-sched','p-roster','p-pin'];
+  if(editPanels.indexOf(id)>=0&&!requireCoach())return;
   var panel=document.getElementById(id);
   var isOpen=panel.classList.contains('open');
   document.querySelectorAll('.up-panel').forEach(function(p){p.classList.remove('open');});
@@ -847,10 +1023,10 @@ function changePin(){
   PIN=nw;save();['pin-cur','pin-new','pin-con'].forEach(function(id){document.getElementById(id).value='';});showToast('PIN updated successfully');togglePanel('p-pin');
 }
 function exportCSV(){var csv='Player,Pitcher,1B,2B,SS,3B,LF,CF,RF,Total\n';PLAYERS.forEach(function(p){var c=seasonStats[p]||[0,0,0,0,0,0,0,0];csv+=[p].concat(c).concat([c.reduce(function(a,b){return a+b;},0)]).join(',')+'\n';});var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='season-stats.csv';a.click();showToast('Stats exported');}
-function resetStats(){if(confirm('Reset all season stats? This cannot be undone.')){PLAYERS.forEach(function(p){seasonStats[p]=[0,0,0,0,0,0,0,0];seasonBatting[p]={H:0,O:0,W:0,RBI:0,R:0};});gameHistory=[];gamesPlayed=0;save();showToast('Stats reset');}}
+function resetStats(){if(!requireCoach())return;if(confirm('Reset all season stats? This cannot be undone.')){PLAYERS.forEach(function(p){seasonStats[p]=[0,0,0,0,0,0,0,0];seasonBatting[p]={H:0,O:0,W:0,RBI:0,R:0};});gameHistory=[];gamesPlayed=0;save();showToast('Stats reset');}}
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
 
-renderHome();renderSetup();
+initApp();
 </script>
 </body>
 </html>
