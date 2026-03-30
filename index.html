@@ -287,7 +287,7 @@
   <div class="home-header">
     <span style="font-size:28px;">&#x26BE;</span>
     <div><div class="app-name">Little League Manager</div><div class="app-sub">Youth T-Ball Team Dashboard</div></div>
-    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;"><span id="sync-dot-home" class="sync-dot offline" title="Offline"></span><span id="coach-badge-home" class="coach-badge" style="display:none;">Coach</span><button class="moon-btn" onclick="toggleDark()">&#127769;</button></div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;"><span id="sync-dot-home" class="sync-dot offline" title="Offline"></span><span id="coach-badge-home" class="coach-badge" style="display:none;">Coach</span><button id="logout-btn" onclick="coachLogout()" style="display:none;background:rgba(255,255,255,0.2);border:none;color:white;font-size:12px;font-weight:700;padding:4px 10px;border-radius:10px;cursor:pointer;">Sign Out</button><button class="moon-btn" onclick="toggleDark()">&#127769;</button></div>
   </div>
   <div class="content"><div class="content-inner">
     <div class="card">
@@ -749,6 +749,8 @@ function applyCoachUI(){
   if(badge)badge.style.display=isCoach?'':'none';
   if(isCoach&&db){db.auth.getUser().then(function(r){var el=document.getElementById('coach-email-lbl');if(el&&r.data&&r.data.user)el.textContent=r.data.user.email;});}
   document.querySelectorAll('.settings-nav-btn').forEach(function(b){b.style.display=(!isCoach||isAdmin)?'':'none';});
+  var logoutBtn=document.getElementById('logout-btn');
+  if(logoutBtn)logoutBtn.style.display=isCoach?'':'none';
 }
 function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
 function requireAdmin(){if(!isAdmin){showToast('Admin access required');return false;}return true;}
