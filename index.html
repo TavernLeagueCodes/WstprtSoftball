@@ -252,6 +252,41 @@
   <div id="loading-msg" style="font-size:13px;color:var(--text-light);">Connecting...</div>
 </div>
 
+<!-- WELCOME -->
+<div class="screen" id="screen-welcome">
+  <div style="background:var(--blue);color:white;padding:44px 20px 28px;text-align:center;">
+    <div style="font-size:52px;margin-bottom:8px;">&#x26BE;</div>
+    <div style="font-size:22px;font-weight:800;">Little League Manager</div>
+    <div style="font-size:13px;opacity:.8;margin-top:4px;">Select how you'd like to continue</div>
+  </div>
+  <div style="flex:1;padding:24px 16px;overflow-y:auto;">
+    <div style="max-width:400px;margin:0 auto;">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-label" style="margin-bottom:12px;">&#9889; Coach / Admin</div>
+        <div id="coach-login-form">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;">
+            <input class="r-input" type="email" id="coach-email" placeholder="Email address" autocomplete="email">
+            <input class="r-input" type="password" id="coach-password" placeholder="Password" autocomplete="current-password">
+          </div>
+          <div style="color:var(--red-text);font-size:12px;min-height:16px;margin-bottom:8px;" id="coach-err"></div>
+          <button class="btn btn-primary" style="margin-bottom:0;" onclick="coachLogin()">Sign In</button>
+        </div>
+        <div id="coach-logout-form" style="display:none;">
+          <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;">Signed in as <strong id="coach-email-lbl"></strong></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" style="flex:1;margin-bottom:0;" onclick="continueAsCoach()">Continue &#8594;</button>
+            <button class="btn btn-outline" style="width:auto;padding:14px 16px;margin-bottom:0;" onclick="coachLogout()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="margin-bottom:12px;">&#128274; Parent / Viewer</div>
+        <button class="btn btn-outline" style="margin-bottom:0;" onclick="showPinScreen()">Enter PIN to Continue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TEAM PICKER -->
 <div class="screen" id="screen-team-picker">
   <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;">
@@ -527,24 +562,9 @@
 
     <div class="sg-title">Coach Access</div>
     <div class="s-card">
-      <div class="s-item" onclick="togglePanel('p-coach')">
+      <div class="s-item">
         <div class="s-ico ico-blue">&#9889;</div>
-        <div class="s-lbl"><strong>Coach Login</strong><span id="coach-status-lbl">Not signed in &mdash; read only</span></div>
-        <span class="s-chev" id="chev-p-coach">&#8250;</span>
-      </div>
-      <div class="up-panel" id="p-coach">
-        <div id="coach-login-form">
-          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
-            <input class="r-input" type="email" id="coach-email" placeholder="Coach email" autocomplete="email">
-            <input class="r-input" type="password" id="coach-password" placeholder="Password" autocomplete="current-password">
-          </div>
-          <div style="color:var(--red-text);font-size:12px;min-height:16px;margin-bottom:8px;" id="coach-err"></div>
-          <button class="btn btn-primary" style="margin-bottom:0;" onclick="coachLogin()">Sign In as Coach</button>
-        </div>
-        <div id="coach-logout-form" style="display:none;">
-          <div style="font-size:13px;margin-bottom:12px;color:var(--text-light);">Signed in as <strong id="coach-email-lbl"></strong></div>
-          <button class="btn btn-outline" style="margin-bottom:0;" onclick="coachLogout()">Sign Out</button>
-        </div>
+        <div class="s-lbl"><strong>Coach Status</strong><span id="coach-status-lbl">Signed in &mdash; editing enabled</span></div>
       </div>
     </div>
 
@@ -650,8 +670,20 @@ async function initApp(){
 }
 function finishLoading(){
   document.getElementById('screen-loading').classList.remove('active');
-  document.getElementById('screen-pin').classList.add('active');
+  document.getElementById('screen-welcome').classList.add('active');
   renderHome();renderSetup();
+}
+function showPinScreen(){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('screen-pin').classList.add('active');
+}
+async function continueAsCoach(){
+  if(userTeams.length>1&&!currentTeamId){
+    showTeamPicker(function(){go('screen-home');});
+  }else{
+    if(currentTeamId)await pullFromSupabase();
+    go('screen-home');
+  }
 }
 
 async function pullFromSupabase(){
@@ -724,13 +756,13 @@ async function coachLogin(){
   document.getElementById('coach-password').value='';
   await loadUserTeams();
   if(userTeams.length===0){errEl.textContent='No teams assigned to this account.';await db.auth.signOut();isCoach=false;return;}
-  togglePanel('p-coach');
+  applyCoachUI();
+  showToast('Welcome back!');
   if(userTeams.length>1){
-    showTeamPicker(function(){applyCoachUI();showToast('Coach mode active');});
+    showTeamPicker(function(){go('screen-home');});
   }else{
     await pullFromSupabase();
-    applyCoachUI();
-    showToast('Coach mode active');
+    go('screen-home');
   }
 }
 async function coachLogout(){
@@ -743,18 +775,19 @@ function applyCoachUI(){
   var logoutForm=document.getElementById('coach-logout-form');
   var statusLbl=document.getElementById('coach-status-lbl');
   var badge=document.getElementById('coach-badge-home');
+  var logoutBtn=document.getElementById('logout-btn');
   if(loginForm)loginForm.style.display=isCoach?'none':'';
   if(logoutForm)logoutForm.style.display=isCoach?'':'none';
-  if(statusLbl)statusLbl.textContent=isCoach?'Signed in \u2014 editing enabled':'Not signed in \u2014 read only';
+  if(statusLbl)statusLbl.textContent=isCoach?(isAdmin?'Admin \u2014 full access':'Coach \u2014 editing enabled'):'';
   if(badge)badge.style.display=isCoach?'':'none';
+  if(badge)badge.textContent=isAdmin?'Admin':'Coach';
+  if(logoutBtn)logoutBtn.style.display=isCoach?'':'none';
   if(isCoach&&db){db.auth.getUser().then(function(r){var el=document.getElementById('coach-email-lbl');if(el&&r.data&&r.data.user)el.textContent=r.data.user.email;});}
   document.querySelectorAll('.settings-nav-btn').forEach(function(b){b.style.display=(!isCoach||isAdmin)?'':'none';});
-  var logoutBtn=document.getElementById('logout-btn');
-  if(logoutBtn)logoutBtn.style.display=isCoach?'':'none';
 }
 function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
 function requireAdmin(){if(!isAdmin){showToast('Admin access required');return false;}return true;}
-function goSettings(){if(!isAdmin){showToast('Admin access required');return;}go('screen-settings');}
+function goSettings(){if(isCoach&&!isAdmin){showToast('Admin access required');return;}go('screen-settings');}
 
 async function loadUserTeams(){
   var {data}=await db.from('coach_teams').select('team_id,is_admin,teams(id,name,season)');
