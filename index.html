@@ -233,6 +233,11 @@
   .coach-badge{background:#e3f0fb;color:var(--blue);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;}
   body.dark .coach-badge{background:#1a3050;}
   @media(max-width:480px){.content-inner{padding:14px 10px 90px;}.fielding-grid{gap:6px;}.field-pos-name{font-size:12px;}}
+  #screen-team-picker{background:#f4f7fb;align-items:center;justify-content:center;}
+  .team-pick-btn{width:100%;padding:16px 18px;background:white;border:1.5px solid var(--border);border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;margin-bottom:10px;color:var(--text);box-shadow:var(--shadow);transition:border-color .15s;}
+  .team-pick-btn:hover{border-color:var(--blue);}
+  .team-pick-season{font-size:12px;font-weight:400;color:var(--text-light);margin-left:auto;}
+  .team-pick-admin{font-size:11px;font-weight:700;background:#e3f0fb;color:var(--blue);padding:2px 7px;border-radius:10px;}
 </style>
 </head>
 <body>
@@ -245,6 +250,16 @@
   <div style="font-size:20px;font-weight:800;color:var(--blue);">Little League Manager</div>
   <div class="app-spinner"></div>
   <div id="loading-msg" style="font-size:13px;color:var(--text-light);">Connecting...</div>
+</div>
+
+<!-- TEAM PICKER -->
+<div class="screen" id="screen-team-picker">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;">
+    <div style="font-size:48px;margin-bottom:12px;">&#x26BE;</div>
+    <div style="font-size:20px;font-weight:800;color:var(--blue);margin-bottom:6px;">Select Team</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:24px;" id="team-picker-sub">Choose a team to continue</div>
+    <div id="team-picker-list" style="width:100%;max-width:340px;"></div>
+  </div>
 </div>
 
 <!-- PIN -->
@@ -309,7 +324,7 @@
   <div class="bottom-nav">
     <button class="active" onclick="go('screen-home')"><span class="bnav-icon">&#127968;</span>Home</button>
     <button onclick="go('screen-history')"><span class="bnav-icon">&#128202;</span>History</button>
-    <button onclick="go('screen-settings')"><span class="bnav-icon">&#9881;</span>Settings</button>
+    <button class="settings-nav-btn" onclick="goSettings()"><span class="bnav-icon">&#9881;</span>Settings</button>
   </div>
 </div>
 
@@ -376,7 +391,7 @@
   <div class="bottom-nav">
     <button onclick="go('screen-home')"><span class="bnav-icon">&#127968;</span>Home</button>
     <button class="active"><span class="bnav-icon">&#128202;</span>History</button>
-    <button onclick="go('screen-settings')"><span class="bnav-icon">&#9881;</span>Settings</button>
+    <button class="settings-nav-btn" onclick="goSettings()"><span class="bnav-icon">&#9881;</span>Settings</button>
   </div>
 </div>
 
@@ -568,7 +583,10 @@ var SUPABASE_URL='%%SUPABASE_URL%%';
 var SUPABASE_ANON_KEY='%%SUPABASE_ANON_KEY%%';
 var db=null;
 var isCoach=false;
+var isAdmin=false;
 var dbReady=false;
+var currentTeamId=parseInt(localStorage.getItem('llm-team-id'))||null;
+var userTeams=[];
 // ─────────────────────────────────────────────────────────────────
 var PIN=localStorage.getItem('llm-pin')||'1234';
 var pinEntry='';
@@ -606,21 +624,20 @@ function save(){saveLocal();if(db&&isCoach){pushToSupabase().catch(function(e){c
 // ── Supabase init & sync ──────────────────────────────────────────
 async function initApp(){
   document.getElementById('loading-msg').textContent='Connecting...';
-  console.log('[LLM] initApp: URL=',SUPABASE_URL?'set':'empty');
   if(!SUPABASE_URL){
-    console.log('[LLM] offline mode');
     document.getElementById('loading-msg').textContent='Running in offline mode';
     setTimeout(finishLoading,800);return;
   }
   try{
     db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-    console.log('[LLM] db created:',!!db);
     var s=await db.auth.getSession();
-    console.log('[LLM] session ok');
-    if(s.data&&s.data.session){isCoach=true;}
+    if(s.data&&s.data.session){
+      isCoach=true;
+      await loadUserTeams();
+    }
     db.auth.onAuthStateChange(function(_,session){isCoach=!!session;applyCoachUI();});
     var timer=setTimeout(function(){document.getElementById('loading-msg').textContent='Taking longer than usual...';},3000);
-    await pullFromSupabase();
+    if(currentTeamId)await pullFromSupabase();
     clearTimeout(timer);
     dbReady=true;
     setSyncStatus('online');
@@ -632,19 +649,24 @@ async function initApp(){
 }
 function finishLoading(){
   document.getElementById('screen-loading').classList.remove('active');
-  document.getElementById('screen-pin').classList.add('active');
+  if(isCoach&&userTeams.length>1&&!currentTeamId){
+    showTeamPicker(function(){go('screen-home');applyCoachUI();});
+  }else{
+    document.getElementById('screen-pin').classList.add('active');
+  }
   renderHome();renderSetup();
 }
 
 async function pullFromSupabase(){
   setSyncStatus('syncing');
+  var tid=currentTeamId;
   var res=await Promise.all([
-    db.from('llm_config').select('*').eq('id','default').maybeSingle(),
-    db.from('llm_players').select('*').order('sort_order'),
-    db.from('llm_schedule').select('*').order('num'),
-    db.from('llm_stats').select('*'),
-    db.from('llm_season_batting').select('*'),
-    db.from('llm_game_history').select('*').order('completed_at')
+    db.from('llm_config').select('*').eq('id','default').eq('team_id',tid).maybeSingle(),
+    db.from('llm_players').select('*').eq('team_id',tid).order('sort_order'),
+    db.from('llm_schedule').select('*').eq('team_id',tid).order('num'),
+    db.from('llm_stats').select('*').eq('team_id',tid),
+    db.from('llm_season_batting').select('*').eq('team_id',tid),
+    db.from('llm_game_history').select('*').eq('team_id',tid).order('completed_at')
   ]);
   var cfg=res[0].data,players=res[1].data,sched=res[2].data,stats=res[3].data,batting=res[4].data,hist=res[5].data;
   if(cfg){PIN=cfg.pin||PIN;gamesPlayed=cfg.games_played!=null?cfg.games_played:gamesPlayed;}
@@ -663,22 +685,22 @@ async function pullFromSupabase(){
 }
 
 async function pushToSupabase(){
-  if(!db||!isCoach)return;
+  if(!db||!isCoach||!currentTeamId)return;
   setSyncStatus('syncing');
-  await db.from('llm_config').upsert({id:'default',pin:PIN,games_played:gamesPlayed,updated_at:new Date().toISOString()});
-  await db.from('llm_players').delete().neq('id',0);
-  if(PLAYERS.length)await db.from('llm_players').insert(PLAYERS.map(function(p,i){return{name:p,jersey:JERSEYS[p]||null,song_url:SONGS[p]||null,sort_order:i};}));
-  await db.from('llm_schedule').delete().neq('id',0);
-  if(SCHEDULE.length)await db.from('llm_schedule').insert(SCHEDULE.map(function(g){return{num:g.num,opp:g.opp,game_date:g.date,game_time:g.time,loc:g.loc,ha:g.ha,status:g.status,rainout:g.rainout||false};}));
-  var sRows=PLAYERS.map(function(p){ensureStats(p);return{player_name:p,counts:seasonStats[p]};});
-  if(sRows.length)await db.from('llm_stats').upsert(sRows,{onConflict:'player_name'});
-  var bRows=PLAYERS.map(function(p){var b=seasonBatting[p]||{H:0,O:0,W:0,RBI:0,R:0};return{player_name:p,h:b.H,o:b.O,w:b.W,rbi:b.RBI,r:b.R};});
-  if(bRows.length)await db.from('llm_season_batting').upsert(bRows,{onConflict:'player_name'});
-  // Game history: only insert rows not already in DB (keyed by game_num)
+  var tid=currentTeamId;
+  await db.from('llm_config').upsert({id:'default',team_id:tid,pin:PIN,games_played:gamesPlayed,updated_at:new Date().toISOString()},{onConflict:'id,team_id'});
+  await db.from('llm_players').delete().eq('team_id',tid);
+  if(PLAYERS.length)await db.from('llm_players').insert(PLAYERS.map(function(p,i){return{team_id:tid,name:p,jersey:JERSEYS[p]||null,song_url:SONGS[p]||null,sort_order:i};}));
+  await db.from('llm_schedule').delete().eq('team_id',tid);
+  if(SCHEDULE.length)await db.from('llm_schedule').insert(SCHEDULE.map(function(g){return{team_id:tid,num:g.num,opp:g.opp,game_date:g.date,game_time:g.time,loc:g.loc,ha:g.ha,status:g.status,rainout:g.rainout||false};}));
+  var sRows=PLAYERS.map(function(p){ensureStats(p);return{team_id:tid,player_name:p,counts:seasonStats[p]};});
+  if(sRows.length)await db.from('llm_stats').upsert(sRows,{onConflict:'player_name,team_id'});
+  var bRows=PLAYERS.map(function(p){var b=seasonBatting[p]||{H:0,O:0,W:0,RBI:0,R:0};return{team_id:tid,player_name:p,h:b.H,o:b.O,w:b.W,rbi:b.RBI,r:b.R};});
+  if(bRows.length)await db.from('llm_season_batting').upsert(bRows,{onConflict:'player_name,team_id'});
   if(gameHistory.length){
-    var existing=await db.from('llm_game_history').select('game_num');
+    var existing=await db.from('llm_game_history').select('game_num').eq('team_id',tid);
     var existNums=new Set((existing.data||[]).map(function(r){return r.game_num;}));
-    var newRows=gameHistory.filter(function(g){return!existNums.has(g.gameNum);}).map(function(g){return{game_num:g.gameNum,opp:g.opp,game_date:g.date,batting:g.batting,mvps:g.mvps||[]};});
+    var newRows=gameHistory.filter(function(g){return!existNums.has(g.gameNum);}).map(function(g){return{team_id:tid,game_num:g.gameNum,opp:g.opp,game_date:g.date,batting:g.batting,mvps:g.mvps||[]};});
     if(newRows.length)await db.from('llm_game_history').insert(newRows);
   }
   setSyncStatus('online');
@@ -703,13 +725,24 @@ async function coachLogin(){
   if(error){errEl.textContent=error.message;return;}
   isCoach=true;
   document.getElementById('coach-password').value='';
-  applyCoachUI();
-  showToast('Coach mode active');
+  await loadUserTeams();
+  if(userTeams.length===0){errEl.textContent='No teams assigned to this account.';await db.auth.signOut();isCoach=false;return;}
   togglePanel('p-coach');
+  if(userTeams.length>1){
+    showTeamPicker(function(){applyCoachUI();showToast('Coach mode active');});
+  }else{
+    await pullFromSupabase();
+    applyCoachUI();
+    showToast('Coach mode active');
+  }
 }
 async function coachLogout(){
   if(db)await db.auth.signOut();
   isCoach=false;
+  isAdmin=false;
+  currentTeamId=null;
+  userTeams=[];
+  localStorage.removeItem('llm-team-id');
   applyCoachUI();
   showToast('Signed out');
 }
@@ -723,8 +756,43 @@ function applyCoachUI(){
   if(statusLbl)statusLbl.textContent=isCoach?'Signed in \u2014 editing enabled':'Not signed in \u2014 read only';
   if(badge)badge.style.display=isCoach?'':'none';
   if(isCoach&&db){db.auth.getUser().then(function(r){var el=document.getElementById('coach-email-lbl');if(el&&r.data&&r.data.user)el.textContent=r.data.user.email;});}
+  document.querySelectorAll('.settings-nav-btn').forEach(function(b){b.style.display=(!isCoach||isAdmin)?'':'none';});
 }
 function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
+function requireAdmin(){if(!isAdmin){showToast('Admin access required');return false;}return true;}
+function goSettings(){if(!isAdmin){showToast('Admin access required');return;}go('screen-settings');}
+
+async function loadUserTeams(){
+  var {data}=await db.from('coach_teams').select('team_id,is_admin,teams(id,name,season)');
+  userTeams=data||[];
+  if(userTeams.length===1){currentTeamId=userTeams[0].team_id;isAdmin=!!userTeams[0].is_admin;localStorage.setItem('llm-team-id',String(currentTeamId));}
+}
+
+function showTeamPicker(afterPick){
+  var list=document.getElementById('team-picker-list');
+  list.innerHTML='';
+  document.getElementById('team-picker-sub').textContent=isCoach?'Choose a team to manage':'Choose a team to view';
+  userTeams.forEach(function(t){
+    var team=t.teams||{name:'Team '+t.team_id};
+    var btn=document.createElement('button');
+    btn.className='team-pick-btn';
+    btn.innerHTML='<span style="font-size:22px;">&#x26BE;</span><span style="flex:1;">'+team.name+'</span>'+(team.season?'<span class="team-pick-season">'+team.season+'</span>':'')+(t.is_admin?'<span class="team-pick-admin">Admin</span>':'');
+    btn.onclick=function(){selectTeam(t.team_id,t.is_admin,afterPick);};
+    list.appendChild(btn);
+  });
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('screen-team-picker').classList.add('active');
+}
+
+async function selectTeam(teamId,admin,afterPick){
+  currentTeamId=teamId;
+  isAdmin=!!admin;
+  localStorage.setItem('llm-team-id',String(teamId));
+  await pullFromSupabase();
+  renderHome();renderSetup();
+  if(afterPick)afterPick();
+  else go('screen-home');
+}
 
 function pp(d){if(pinEntry.length>=4)return;pinEntry+=d;dots();if(pinEntry.length===4)setTimeout(chkPin,200);}
 function pb(){pinEntry=pinEntry.slice(0,-1);dots();document.getElementById('pin-err').textContent='';}
