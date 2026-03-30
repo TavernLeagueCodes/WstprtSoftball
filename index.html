@@ -825,7 +825,22 @@ async function selectTeam(teamId,admin,afterPick){
 function pp(d){if(pinEntry.length>=4)return;pinEntry+=d;dots();if(pinEntry.length===4)setTimeout(chkPin,200);}
 function pb(){pinEntry=pinEntry.slice(0,-1);dots();document.getElementById('pin-err').textContent='';}
 function dots(){for(var i=0;i<4;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinEntry.length);}
-function chkPin(){if(pinEntry===PIN){go('screen-home');}else{document.getElementById('pin-err').textContent='Incorrect PIN. Try again.';pinEntry='';dots();}}
+async function chkPin(){
+  var errEl=document.getElementById('pin-err');
+  if(db){
+    var {data}=await db.from('llm_config').select('team_id,pin').eq('pin',pinEntry);
+    if(data&&data.length>0){
+      currentTeamId=data[0].team_id;
+      localStorage.setItem('llm-team-id',String(currentTeamId));
+      await pullFromSupabase();
+      renderHome();renderSetup();
+      go('screen-home');
+    }else{errEl.textContent='Incorrect PIN. Try again.';pinEntry='';dots();}
+  }else{
+    if(pinEntry===PIN){go('screen-home');}
+    else{errEl.textContent='Incorrect PIN. Try again.';pinEntry='';dots();}
+  }
+}
 
 function go(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
