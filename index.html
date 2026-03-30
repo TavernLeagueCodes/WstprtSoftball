@@ -621,7 +621,7 @@ async function initApp(){
     dbReady=true;
     setSyncStatus('online');
   }catch(e){
-    console.warn('Supabase unavailable, using local cache:',e);
+    console.error('Supabase init error:',e);
     setSyncStatus('offline');
   }
   finishLoading();
