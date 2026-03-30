@@ -650,14 +650,8 @@ async function initApp(){
 }
 function finishLoading(){
   document.getElementById('screen-loading').classList.remove('active');
+  document.getElementById('screen-pin').classList.add('active');
   renderHome();renderSetup();
-  if(isCoach&&userTeams.length>1&&!currentTeamId){
-    showTeamPicker(function(){go('screen-home');applyCoachUI();});
-  }else if(isCoach){
-    go('screen-home');
-  }else{
-    document.getElementById('screen-pin').classList.add('active');
-  }
 }
 
 async function pullFromSupabase(){
@@ -741,13 +735,8 @@ async function coachLogin(){
 }
 async function coachLogout(){
   if(db)await db.auth.signOut();
-  isCoach=false;
-  isAdmin=false;
-  currentTeamId=null;
-  userTeams=[];
   localStorage.removeItem('llm-team-id');
-  applyCoachUI();
-  showToast('Signed out');
+  window.location.reload();
 }
 function applyCoachUI(){
   var loginForm=document.getElementById('coach-login-form');
