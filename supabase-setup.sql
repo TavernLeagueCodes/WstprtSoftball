@@ -3,6 +3,8 @@
 -- Run this entire script in the Supabase SQL Editor once.
 -- Dashboard → SQL Editor → New Query → paste → Run
 --
+-- Safe to run on an existing v1 database — uses ALTER TABLE
+-- to add team_id to existing tables rather than recreating them.
 -- To revert to v1 single-team, run supabase-setup-v1-backup.sql
 -- ================================================================
 
@@ -27,69 +29,40 @@ create table if not exists coach_teams (
   unique(user_id, team_id)
 );
 
--- 3. Core tables (now team-scoped) --------------------------------
+-- 3. Add team_id to existing tables (safe if already added) -------
 
-create table if not exists llm_config (
-  id           text not null default 'default',
-  team_id      integer not null references teams(id) on delete cascade,
-  pin          text not null default '1234',
-  games_played integer not null default 0,
-  updated_at   timestamptz default now(),
-  primary key (id, team_id)
-);
+alter table llm_config
+  add column if not exists team_id integer references teams(id) on delete cascade;
 
-create table if not exists llm_players (
-  id         serial primary key,
-  team_id    integer not null references teams(id) on delete cascade,
-  name       text not null,
-  jersey     text,
-  song_url   text,
-  sort_order integer not null default 0
-);
+alter table llm_players
+  add column if not exists team_id integer references teams(id) on delete cascade;
 
-create table if not exists llm_schedule (
-  id         serial primary key,
-  team_id    integer not null references teams(id) on delete cascade,
-  num        integer not null,
-  opp        text not null,
-  game_date  text,
-  game_time  text default '10:00 AM',
-  loc        text,
-  ha         text default 'Home',
-  status     text default 'upcoming',
-  rainout    boolean default false
-);
+alter table llm_schedule
+  add column if not exists team_id integer references teams(id) on delete cascade;
 
-create table if not exists llm_stats (
-  player_name text not null,
-  team_id     integer not null references teams(id) on delete cascade,
-  counts      integer[] not null default '{0,0,0,0,0,0,0,0,0,0}',
-  primary key (player_name, team_id)
-);
+alter table llm_stats
+  add column if not exists team_id integer references teams(id) on delete cascade;
 
-create table if not exists llm_season_batting (
-  player_name text not null,
-  team_id     integer not null references teams(id) on delete cascade,
-  h   integer default 0,
-  o   integer default 0,
-  w   integer default 0,
-  rbi integer default 0,
-  r   integer default 0,
-  primary key (player_name, team_id)
-);
+alter table llm_season_batting
+  add column if not exists team_id integer references teams(id) on delete cascade;
 
-create table if not exists llm_game_history (
-  id           serial primary key,
-  team_id      integer not null references teams(id) on delete cascade,
-  game_num     integer,
-  opp          text,
-  game_date    text,
-  batting      jsonb,
-  mvps         text[],
-  completed_at timestamptz default now()
-);
+alter table llm_game_history
+  add column if not exists team_id integer references teams(id) on delete cascade;
 
--- 4. Row Level Security ------------------------------------------
+-- 4. Update primary keys to include team_id -----------------------
+-- llm_config: old PK was just (id), new PK is (id, team_id)
+alter table llm_config drop constraint if exists llm_config_pkey;
+alter table llm_config add primary key (id, team_id);
+
+-- llm_stats: old PK was just (player_name), new PK is (player_name, team_id)
+alter table llm_stats drop constraint if exists llm_stats_pkey;
+alter table llm_stats add primary key (player_name, team_id);
+
+-- llm_season_batting: old PK was just (player_name)
+alter table llm_season_batting drop constraint if exists llm_season_batting_pkey;
+alter table llm_season_batting add primary key (player_name, team_id);
+
+-- 5. Row Level Security ------------------------------------------
 
 alter table teams                enable row level security;
 alter table coach_teams          enable row level security;
@@ -118,7 +91,21 @@ returns boolean language sql security definer as $$
   );
 $$;
 
--- teams: any authenticated user can see teams they are assigned to
+-- Drop existing policies before recreating (avoids conflicts)
+drop policy if exists "public read" on llm_config;
+drop policy if exists "coach write" on llm_config;
+drop policy if exists "public read" on llm_players;
+drop policy if exists "coach write" on llm_players;
+drop policy if exists "public read" on llm_schedule;
+drop policy if exists "coach write" on llm_schedule;
+drop policy if exists "public read" on llm_stats;
+drop policy if exists "coach write" on llm_stats;
+drop policy if exists "public read" on llm_season_batting;
+drop policy if exists "coach write" on llm_season_batting;
+drop policy if exists "public read" on llm_game_history;
+drop policy if exists "coach write" on llm_game_history;
+
+-- teams: authenticated users can see teams they are assigned to
 create policy "coach read own teams"  on teams for select to authenticated
   using (exists (select 1 from coach_teams where user_id = auth.uid() and team_id = teams.id));
 create policy "admin insert teams"    on teams for insert to authenticated with check (true);
@@ -133,7 +120,7 @@ create policy "read own assignments"  on coach_teams for select to authenticated
 create policy "admin manage coaches"  on coach_teams for all to authenticated
   using (user_is_admin(team_id)) with check (user_is_admin(team_id));
 
--- llm_config: anyone can read (parents via anon); only admins can write
+-- llm_config: anyone can read; only admins can write
 create policy "public read config"    on llm_config for select using (true);
 create policy "admin write config"    on llm_config for all to authenticated
   using (user_is_admin(team_id)) with check (user_is_admin(team_id));
@@ -166,15 +153,21 @@ create policy "coach write history"   on llm_game_history for all to authenticat
 -- ================================================================
 -- After running this script:
 -- 1. Create your admin user: Authentication → Users → Add User
+--    (skip if you already have one from v1)
 -- 2. Disable email confirmation: Authentication → Providers → Email
 --    → turn off "Confirm email"
 -- 3. Insert your first team:
 --    INSERT INTO teams (name, season) VALUES ('Team Name', '2025');
--- 4. Assign yourself as admin:
+-- 4. Assign yourself as admin (get your UUID from Authentication → Users):
 --    INSERT INTO coach_teams (user_id, team_id, is_admin)
 --    VALUES ('<your-auth-user-uuid>', 1, true);
--- 5. Insert a default config row for the team:
---    INSERT INTO llm_config (team_id) VALUES (1);
+-- 5. Update existing data to belong to your team:
+--    UPDATE llm_config SET team_id = 1;
+--    UPDATE llm_players SET team_id = 1;
+--    UPDATE llm_schedule SET team_id = 1;
+--    UPDATE llm_stats SET team_id = 1;
+--    UPDATE llm_season_batting SET team_id = 1;
+--    UPDATE llm_game_history SET team_id = 1;
 -- 6. Add coaches via Authentication → Users, then assign them:
 --    INSERT INTO coach_teams (user_id, team_id, is_admin)
 --    VALUES ('<coach-uuid>', 1, false);
