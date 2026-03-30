@@ -650,12 +650,14 @@ async function initApp(){
 }
 function finishLoading(){
   document.getElementById('screen-loading').classList.remove('active');
+  renderHome();renderSetup();
   if(isCoach&&userTeams.length>1&&!currentTeamId){
     showTeamPicker(function(){go('screen-home');applyCoachUI();});
+  }else if(isCoach){
+    go('screen-home');
   }else{
     document.getElementById('screen-pin').classList.add('active');
   }
-  renderHome();renderSetup();
 }
 
 async function pullFromSupabase(){
