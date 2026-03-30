@@ -817,6 +817,7 @@ async function selectTeam(teamId,admin,afterPick){
   localStorage.setItem('llm-team-id',String(teamId));
   await pullFromSupabase();
   renderHome();renderSetup();
+  applyCoachUI();
   if(afterPick)afterPick();
   else go('screen-home');
 }
