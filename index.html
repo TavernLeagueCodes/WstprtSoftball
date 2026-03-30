@@ -49,9 +49,6 @@
   .game-info-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px;}
   .game-tags{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px;}
   .game-tag{background:#e3f2fd;color:var(--blue);font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;}
-  .snack-label{font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
-  .snack-input{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--text);outline:none;margin-bottom:14px;background:#fafbfc;}
-  .snack-input:focus{border-color:var(--blue);}
   .section-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden;}
   .section-header{padding:14px 18px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
   .sh-title{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-light);}
@@ -198,7 +195,7 @@
   body.dark .card,body.dark .s-card,body.dark .setup-info-card,body.dark .inning-card,body.dark .player-check-row,body.dark .section-card,body.dark .prev-box,body.dark .pin-key,body.dark .bottom-nav,body.dark .field-pos,body.dark .mvp-chip,body.dark .adjust-btn,body.dark .drop-zone,body.dark .r-input,body.dark .r-num,body.dark .pin-inp{background:#1a2535;}
   body.dark .up-tab:not(.active){background:#1a2535;color:#8fa3c0;}
   body.dark .pin-key{border-color:#2a3a50;color:#e8f0fe;}
-  body.dark .snack-input,body.dark .game-notes-ta{background:#1a2535;color:#e8f0fe;border-color:#2a3a50;}
+  body.dark .game-notes-ta{background:#1a2535;color:#e8f0fe;border-color:#2a3a50;}
   body.dark .bottom-nav{background:#1a2535;border-color:#2a3a50;}
   body.dark .up-panel,body.dark .prev-hdr{background:#151f2e;}
   body.dark .btn-outline{background:#1e2f45;color:#e8f0fe;border-color:#2a3a50;}
@@ -344,16 +341,15 @@
         <div class="game-tag">&#128197; <span id="h-days">23 days away</span></div>
         <div class="game-tag">&#128202; <span id="h-lead">Caleb leads off</span></div>
       </div>
-      <div class="snack-label">&#127822; SNACK DUTY</div>
-      <input class="snack-input" placeholder="Family name (e.g. Peiser's)" id="snack-input">
-      <button class="btn btn-outline" onclick="sendText()">&#128172; Send Game Day Text</button>
+
+      <button class="btn btn-outline coach-only-el" id="send-text-btn" style="display:none;" onclick="sendText()">&#128172; Send Game Day Text</button>
       <button class="btn btn-primary" onclick="goSetup()">Start Game Setup &#8594;</button>
     </div>
     <div class="section-card">
       <div class="schedule-row" style="border-bottom:none;">
         <span style="font-size:22px;">&#128196;</span>
-        <div style="flex:1;"><div style="font-weight:700;font-size:14px;">2026 Season Info</div><div style="font-size:12px;color:var(--text-light);">Snack schedule, roster &amp; more</div></div>
-        <button class="btn btn-outline btn-sm" onclick="showToast('Download started!')">Download</button>
+        <div style="flex:1;"><div style="font-weight:700;font-size:14px;" id="season-info-title">Season Info</div><div style="font-size:12px;color:var(--text-light);">Roster, schedule &amp; stats</div></div>
+        <button class="btn btn-outline btn-sm" onclick="downloadSeasonInfo()">Download</button>
       </div>
     </div>
     <div class="section-card">
@@ -792,6 +788,10 @@ function applyCoachUI(){
   document.querySelectorAll('.settings-nav-btn').forEach(function(b){b.style.display=(!isCoach||isAdmin)?'':'none';});
   var teamNameEl=document.getElementById('home-team-name');
   if(teamNameEl)teamNameEl.textContent=currentTeamName||'Youth T-Ball Team Dashboard';
+  var seasonTitle=document.getElementById('season-info-title');
+  if(seasonTitle)seasonTitle.textContent=(currentTeamName||'Season')+' Info';
+  var sendBtn=document.getElementById('send-text-btn');
+  if(sendBtn)sendBtn.style.display=isCoach?'':'none';
 }
 function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
 function requireAdmin(){if(!isAdmin){showToast('Admin access required');return false;}return true;}
@@ -894,7 +894,7 @@ function renderHome(){
 }
 function undoG(n){if(!requireCoach())return;var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.status='upcoming';save();renderHome();showToast('Game '+n+' marked upcoming');}}
 function toggleRainout(n){if(!requireCoach())return;var g=SCHEDULE.find(function(x){return x.num===n;});if(g){g.rainout=!g.rainout;save();renderHome();showToast(g.rainout?'Game '+n+' marked as rainout':'Game '+n+' rainout removed');}}
-function sendText(){var snack=document.getElementById('snack-input').value;var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];showToast('Text ready: '+nx.opp+' @ '+nx.time+(snack?' | Snack: '+snack:''));}
+function sendText(){var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];showToast('Text ready: '+nx.opp+' @ '+nx.time);}
 function goSetup(){
   if(!requireCoach())return;
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];
@@ -1152,7 +1152,42 @@ function changePin(){
   if(nw!==con){err.textContent='New PINs do not match.';return;}
   PIN=nw;save();['pin-cur','pin-new','pin-con'].forEach(function(id){document.getElementById(id).value='';});showToast('PIN updated successfully');togglePanel('p-pin');
 }
-function exportCSV(){var csv='Player,Pitcher,1B,2B,SS,3B,LF,CF,RF,Total\n';PLAYERS.forEach(function(p){var c=seasonStats[p]||[0,0,0,0,0,0,0,0];csv+=[p].concat(c).concat([c.reduce(function(a,b){return a+b;},0)]).join(',')+'\n';});var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='season-stats.csv';a.click();showToast('Stats exported');}
+function downloadSeasonInfo(){
+  var teamName=currentTeamName||'Team';
+  var csv=teamName+' — Season Info\n\n';
+  // Roster
+  csv+='ROSTER\n';
+  csv+='Player,Jersey\n';
+  PLAYERS.forEach(function(p){csv+=p+','+(JERSEYS[p]||'')+'\n';});
+  // Schedule
+  csv+='\nSCHEDULE\n';
+  csv+='Game,Opponent,Date,Time,Location,Home/Away,Status\n';
+  SCHEDULE.forEach(function(g){csv+=[g.num,g.opp,g.date,g.time,g.loc,g.ha,g.rainout?'Rainout':g.status].join(',')+'\n';});
+  // Batting stats
+  csv+='\nSEASON BATTING STATS\n';
+  csv+='Player,H,Out,BB,RBI,R,AVG\n';
+  PLAYERS.forEach(function(p){var b=seasonBatting[p]||{H:0,O:0,W:0,RBI:0,R:0};var ab=b.H+b.O;var avg=ab>0?(b.H/ab).toFixed(3).replace(/^0/,''):'.000';csv+=[p,b.H,b.O,b.W,b.RBI,b.R,avg].join(',')+'\n';});
+  // Position tracking — coaches/admins only
+  if(isCoach){
+    csv+='\nPOSITION TRACKING\n';
+    csv+='Player,Pitcher,C,1B,2B,SS,3B,LF,LCF,CF,RF,Total\n';
+    PLAYERS.forEach(function(p){ensureStats(p);var c=seasonStats[p];var t=c.reduce(function(a,b){return a+b;},0);csv+=[p].concat(c).concat([t]).join(',')+'\n';});
+  }
+  var filename=(teamName.replace(/\s+/g,'-'))+'-season-info.csv';
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=filename;a.click();
+  showToast('Season info downloaded');
+}
+function exportCSV(){
+  var csv='Season Batting Stats\n';
+  csv+='Player,H,Out,BB,RBI,R,AVG\n';
+  PLAYERS.forEach(function(p){var b=seasonBatting[p]||{H:0,O:0,W:0,RBI:0,R:0};var ab=b.H+b.O;var avg=ab>0?(b.H/ab).toFixed(3).replace(/^0/,''):'.000';csv+=[p,b.H,b.O,b.W,b.RBI,b.R,avg].join(',')+'\n';});
+  if(isCoach){
+    csv+='\nPosition Tracking\n';
+    csv+='Player,Pitcher,C,1B,2B,SS,3B,LF,LCF,CF,RF,Total\n';
+    PLAYERS.forEach(function(p){ensureStats(p);var c=seasonStats[p];var t=c.reduce(function(a,b){return a+b;},0);csv+=[p].concat(c).concat([t]).join(',')+'\n';});
+  }
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='season-stats.csv';a.click();showToast('Stats exported');
+}
 function resetStats(){if(!requireCoach())return;if(confirm('Reset all season stats? This cannot be undone.')){PLAYERS.forEach(function(p){seasonStats[p]=[0,0,0,0,0,0,0,0];seasonBatting[p]={H:0,O:0,W:0,RBI:0,R:0};});gameHistory=[];gamesPlayed=0;save();showToast('Stats reset');}}
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
 
