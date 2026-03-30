@@ -634,8 +634,9 @@ async function initApp(){
     if(s.data&&s.data.session){
       isCoach=true;
       await loadUserTeams();
+      applyCoachUI();
     }
-    db.auth.onAuthStateChange(function(_,session){isCoach=!!session;applyCoachUI();});
+    db.auth.onAuthStateChange(function(_,session){if(!session){isCoach=false;isAdmin=false;currentTeamId=null;userTeams=[];applyCoachUI();}});
     var timer=setTimeout(function(){document.getElementById('loading-msg').textContent='Taking longer than usual...';},3000);
     if(currentTeamId)await pullFromSupabase();
     clearTimeout(timer);
