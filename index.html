@@ -867,12 +867,31 @@ function toggleDark(){document.body.classList.toggle('dark');syncDT();}
 function darkFromSettings(b){document.body.classList.toggle('dark');syncDT();}
 function syncDT(){var t=document.getElementById('dark-tog');if(t)t.classList.toggle('on',document.body.classList.contains('dark'));}
 
+function parseGameDate(str){
+  if(!str)return null;
+  var yr=new Date().getFullYear();
+  var d=new Date(str+' '+yr);
+  if(isNaN(d.getTime()))d=new Date(str);
+  if(isNaN(d.getTime()))return null;
+  var today=new Date();today.setHours(0,0,0,0);
+  if(d<today){var d2=new Date(str+' '+(yr+1));if(!isNaN(d2.getTime())&&d2>=today)d=d2;}
+  return d;
+}
+function formatGameDate(str){
+  var d=parseGameDate(str);
+  if(!d)return str||'';
+  var mn=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var day=d.getDate();
+  var s=day%100;
+  var suf=(s>=11&&s<=13)?'th':(s%10===1)?'st':(s%10===2)?'nd':(s%10===3)?'rd':'th';
+  return mn[d.getMonth()]+' '+day+suf;
+}
 function renderHome(){
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;})||SCHEDULE[SCHEDULE.length-1];
   if(nx){
     document.getElementById('h-title').textContent='Game '+nx.num;
     document.getElementById('h-opp').textContent=nx.opp;
-    document.getElementById('h-date').textContent=nx.date;
+    document.getElementById('h-date').textContent=formatGameDate(nx.date);
     document.getElementById('h-time').textContent=nx.time;
     document.getElementById('h-loc').textContent=nx.loc;
     var b=document.getElementById('h-ha');
@@ -880,17 +899,12 @@ function renderHome(){
     b.className='game-badge '+((nx.ha||'').toLowerCase()==='home'?'home':'away');
     document.getElementById('h-lead').textContent=PLAYERS[0]+' leads off';
     var daysEl=document.getElementById('h-days');
-    if(daysEl&&nx.date){
-      var months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-      var parts=nx.date.trim().split(' ');
-      var mo=months[parts[0]],dy=parseInt(parts[1]);
-      if(mo!==undefined&&dy){
+    if(daysEl){
+      var gd=parseGameDate(nx.date);
+      if(gd){
         var today=new Date();today.setHours(0,0,0,0);
-        var yr=today.getFullYear();
-        var gd=new Date(yr,mo,dy);
-        if(gd<today)gd=new Date(yr+1,mo,dy);
         var diff=Math.round((gd-today)/(1000*60*60*24));
-        daysEl.textContent=diff===0?'Today!':diff===1?'Tomorrow':diff+' days away';
+        daysEl.textContent=diff===0?'Today!':diff===1?'Tomorrow':diff>0?diff+' days away':'Game day passed';
       }
     }
   }
@@ -902,7 +916,7 @@ function renderHome(){
       ?'<button class="status-badge status-undo" onclick="event.stopPropagation();undoG('+g.num+')">&#8617; Undo</button><span class="status-badge status-done">Done</span>'
       :'<button class="sched-rainout'+(isRainout?' active':'')+'" onclick="event.stopPropagation();toggleRainout('+g.num+')">'+(isRainout?'&#9928; Rained Out':'&#9888;&#65039; Rainout')+'</button><span class="status-badge status-upcoming">Upcoming</span>';
     var ro=isRainout?' rained-out':'';
-    row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp'+ro+'">'+g.opp+'</span><span class="sched-date'+ro+'">'+g.date+'</span>'+st;
+    row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp'+ro+'">'+g.opp+'</span><span class="sched-date'+ro+'">'+formatGameDate(g.date)+'</span>'+st;
     el.appendChild(row);
   });
 }
@@ -911,23 +925,13 @@ function toggleRainout(n){if(!requireCoach())return;var g=SCHEDULE.find(function
 function generateWeeklyEmail(){
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;});
   if(!nx){showToast('No upcoming games found');return;}
-  var months={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-  function parseDate(str){
-    if(!str)return null;
-    var p=str.trim().split(' ');var mo=months[p[0]],dy=parseInt(p[1]);
-    if(mo===undefined||!dy)return null;
-    var yr=new Date().getFullYear();
-    var d=new Date(yr,mo,dy);
-    if(d<new Date(yr,0,1))d=new Date(yr+1,mo,dy);
-    return d;
-  }
-  var allDates=SCHEDULE.map(function(g){return parseDate(g.date);}).filter(Boolean).sort(function(a,b){return a-b;});
+  var allDates=SCHEDULE.map(function(g){return parseGameDate(g.date);}).filter(Boolean).sort(function(a,b){return a-b;});
   var firstDate=allDates[0];
-  var nxDate=parseDate(nx.date);
+  var nxDate=parseGameDate(nx.date);
   var weekNum=1;
   if(firstDate&&nxDate){weekNum=Math.floor((nxDate-firstDate)/(1000*60*60*24*7))+1;}
   var teamName=currentTeamName||'Team';
-  var text='Hi '+teamName+'!\n\nWelcome to week '+weekNum+'!\n\nOur next game is on '+nx.date+' at '+nx.loc+'. All games start at 9:30am, but please try to arrive 15-30 minutes in advance to get some warm-ups in prior to game start.\n\nAs always we\'ll do our best to get an even rotation in the field and batting order. While things may seem unbalanced to start the year, everything should even out by the end of the season.\n\nReminder: Practices are every Friday from 4 - 5:30pm at KHS. Please set your dismissal instructions for your son to be released to all three coaches as a walker. If your son can\'t make practice one day, please let us know so we\'re not looking for them after school.\n\nLets play ball!\n\n- Zach, Jon and Michael';
+  var text='Hi '+teamName+'!\n\nWelcome to week '+weekNum+'!\n\nOur next game is on '+formatGameDate(nx.date)+' at '+nx.loc+'. All games start at 9:30am, but please try to arrive 15-30 minutes in advance to get some warm-ups in prior to game start.\n\nAs always we\'ll do our best to get an even rotation in the field and batting order. While things may seem unbalanced to start the year, everything should even out by the end of the season.\n\nReminder: Practices are every Friday from 4 - 5:30pm at KHS. Please set your dismissal instructions for your son to be released to all three coaches as a walker. If your son can\'t make practice one day, please let us know so we\'re not looking for them after school.\n\nLets play ball!\n\n- Zach, Jon and Michael';
   if(navigator.clipboard){
     navigator.clipboard.writeText(text).then(function(){showToast('Email copied to clipboard!');}).catch(function(){prompt('Copy this email:',text);});
   }else{prompt('Copy this email:',text);}
