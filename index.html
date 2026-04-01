@@ -333,13 +333,12 @@
         <div class="game-title" id="h-title">Game 2</div>
         <span class="game-badge away" id="h-ha">AWAY</span>
       </div>
-      <div class="game-info-row">&#127934; <span id="h-opp">vs A's</span></div>
+      <div class="game-info-row">&#9918; <span id="h-opp">vs A's</span></div>
       <div class="game-info-row">&#128197; <span id="h-date">Saturday, April 18</span></div>
       <div class="game-info-row">&#128336; <span id="h-time">11:00 AM</span></div>
       <div class="game-info-row">&#128205; <span id="h-loc">Kipling Elementary - Field 1</span></div>
       <div class="game-tags">
         <div class="game-tag">&#128197; <span id="h-days">23 days away</span></div>
-        <div class="game-tag">&#128202; <span id="h-lead">Caleb leads off</span></div>
       </div>
 
       <button class="btn btn-outline coach-only-el" id="send-text-btn" style="display:none;" onclick="generateWeeklyEmail()">&#128140; Generate Weekly Email</button>
@@ -376,7 +375,7 @@
     <div class="setup-info-card">
       <div class="setup-info-row">&#128336; <span id="su-time">11:00 AM</span></div>
       <div class="setup-info-row">&#128205; <span id="su-loc">Kipling Elementary - Field 1</span></div>
-      <div class="setup-info-row">&#127934; <span id="su-opp">vs A's</span> <span id="su-ha" style="margin-left:auto;font-size:11px;background:#e3f0fb;color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:700;">AWAY</span></div>
+      <div class="setup-info-row">&#9918; <span id="su-opp">vs A's</span> <span id="su-ha" style="margin-left:auto;font-size:11px;background:#e3f0fb;color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:700;">AWAY</span></div>
     </div>
     <div class="setup-question">Who's here today?</div>
     <div id="player-list"></div>
@@ -915,7 +914,6 @@ function renderHome(){
     var b=document.getElementById('h-ha');
     b.textContent=(nx.ha||'Away').toUpperCase();
     b.className='game-badge '+((nx.ha||'').toLowerCase()==='home'?'home':'away');
-    document.getElementById('h-lead').textContent=PLAYERS[0]+' leads off';
     var daysEl=document.getElementById('h-days');
     if(daysEl){
       var gd=parseGameDate(nx.date);
