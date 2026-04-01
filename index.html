@@ -995,23 +995,42 @@ function genLineup(){
   if(!presentPlayers.length){showToast('No players present!');return;}
   innings=[];var n=presentPlayers.length;
   var pos=getPositions(n);
-  // Track which positions each player has been assigned this game to encourage variety
-  var posCount={};presentPlayers.forEach(function(p){posCount[p]={};});
+  var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7,'Catcher':8,'LCF':9};
+
+  // --- Batting order: rotate by gamesPlayed so every player cycles through leadoff ---
+  // Preserves roster sort order; shifts the starting point each game.
+  var allPlayers=PLAYERS.filter(function(p){return presentPlayers.indexOf(p)>=0;});
+  presentPlayers.forEach(function(p){if(allPlayers.indexOf(p)<0)allPlayers.push(p);});
+  var offset=gamesPlayed%allPlayers.length;
+  var baseBat=allPlayers.slice(offset).concat(allPlayers.slice(0,offset));
+
+  // --- Fielding: score each player per position, lower = preferred ---
+  // Season history counts once; repeating a position within this game adds a heavy penalty.
+  var gamePosCnt={};presentPlayers.forEach(function(p){ensureStats(p);gamePosCnt[p]={};});
+
   for(var i=0;i<3;i++){
-    var bat=shuffle(presentPlayers);
-    // Build fielding: shuffle players, then assign greedily to positions they haven't played yet
-    var available=shuffle(presentPlayers);
+    var bat=baseBat.slice();
+    var available=presentPlayers.slice();
     var fld={};
-    pos.forEach(function(p){
-      // Prefer a player who hasn't played this position this game
-      var idx=available.findIndex(function(pl){return!posCount[pl][p];});
-      if(idx<0)idx=0;
-      var pl=available.splice(idx,1)[0];
-      fld[p]=pl;
-      posCount[pl][p]=true;
+    pos.forEach(function(position){
+      var posIdx=pm[position];
+      var best=null,bestScore=Infinity;
+      for(var k=0;k<available.length;k++){
+        var pl=available[k];
+        var seasonCnt=(posIdx!==undefined&&seasonStats[pl])?seasonStats[pl][posIdx]||0:0;
+        var gameCnt=gamePosCnt[pl][position]||0;
+        var score=gameCnt*100+seasonCnt;
+        if(score<bestScore){bestScore=score;best=pl;}
+        else if(score===bestScore&&Math.random()<0.5){best=pl;}
+      }
+      if(best===null)best=available[0];
+      fld[position]=best;
+      available.splice(available.indexOf(best),1);
+      gamePosCnt[best][position]=(gamePosCnt[best][position]||0)+1;
     });
     innings.push({bat:bat,fld:fld});
   }
+
   atBats=innings.map(function(inn){return inn.bat.map(function(){return{H:0,O:0,W:0,RBI:0,R:0};});});
   mvps=[];
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];
