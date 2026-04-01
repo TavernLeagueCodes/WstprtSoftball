@@ -240,6 +240,10 @@
   .team-pick-btn:hover{border-color:var(--blue);}
   .team-pick-season{font-size:12px;font-weight:400;color:var(--text-light);margin-left:auto;}
   .team-pick-admin{font-size:11px;font-weight:700;background:#e3f0fb;color:var(--blue);padding:2px 7px;border-radius:10px;}
+  .preview-banner{background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:12px 16px;margin-bottom:16px;text-align:center;font-size:13px;font-weight:600;color:#795548;line-height:1.5;}
+  body.dark .preview-banner{background:#2a2010;border-color:#5a4a00;color:#c4a840;}
+  .sched-preview-btn{background:none;border:none;font-size:17px;cursor:pointer;color:var(--blue);padding:2px 4px;line-height:1;opacity:.75;transition:opacity .15s;}
+  .sched-preview-btn:hover{opacity:1;}
 </style>
 </head>
 <body>
@@ -342,6 +346,7 @@
       </div>
 
       <button class="btn btn-outline coach-only-el" id="send-text-btn" style="display:none;" onclick="generateWeeklyEmail()">&#128140; Generate Weekly Email</button>
+      <button class="btn btn-outline" id="preview-next-btn" style="display:none;" onclick="showPreview()">&#128065; Preview Full-Roster Lineup</button>
       <button class="btn btn-primary" onclick="goSetup()">Start Game Setup &#8594;</button>
       <button class="btn btn-primary" id="resume-game-btn" style="display:none;" onclick="resumeGame()">&#9654; Resume Game in Progress</button>
       <button class="btn btn-outline" id="live-game-btn" style="display:none;" onclick="goLiveGame()">&#9654; View Live Game</button>
@@ -397,6 +402,16 @@
     </div>
   </div>
   <div class="content"><div class="content-inner" id="game-container"></div></div>
+</div>
+
+<!-- PREVIEW (coach-only read-only lineup preview) -->
+<div class="screen" id="screen-preview">
+  <div class="top-nav">
+    <button class="back-btn" onclick="go('screen-home')">&#8592;</button>
+    <div><div class="nav-title" id="preview-title">Game Preview</div><div class="nav-sub" id="preview-sub">Full roster &middot; All players attending</div></div>
+    <div class="nav-right"><button class="moon-btn" onclick="toggleDark()">&#127769;</button><button class="print-btn" onclick="window.print()">Print</button></div>
+  </div>
+  <div class="content"><div class="content-inner" id="preview-container"></div></div>
 </div>
 
 <!-- LIVE GAME (read-only parent view) -->
@@ -816,6 +831,8 @@ function applyCoachUI(){
   if(seasonTitle)seasonTitle.textContent=(currentTeamName||'Season')+' Info';
   var sendBtn=document.getElementById('send-text-btn');
   if(sendBtn)sendBtn.style.display=isCoach?'':'none';
+  var prevNextBtn=document.getElementById('preview-next-btn');
+  if(prevNextBtn)prevNextBtn.style.display=isCoach?'':'none';
   updateResumeButton();
 }
 function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
@@ -937,11 +954,12 @@ function renderHome(){
   SCHEDULE.forEach(function(g){
     var row=document.createElement('div');row.className='schedule-row';
     var isRainout=g.rainout||false;
+    var previewBtn=(isCoach&&g.status!=='done'&&!isRainout)?'<button class="sched-preview-btn" onclick="event.stopPropagation();showPreview('+g.num+')" title="Preview full-roster lineup">&#128065;</button>':'';
     var st=g.status==='done'
       ?'<button class="status-badge status-undo" onclick="event.stopPropagation();undoG('+g.num+')">&#8617; Undo</button><span class="status-badge status-done">Done</span>'
       :'<button class="sched-rainout'+(isRainout?' active':'')+'" onclick="event.stopPropagation();toggleRainout('+g.num+')">'+(isRainout?'&#9928; Rained Out':'&#9888;&#65039; Rainout')+'</button><span class="status-badge status-upcoming">Upcoming</span>';
     var ro=isRainout?' rained-out':'';
-    row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp'+ro+'">'+g.opp+'</span><span class="sched-date'+ro+'">'+formatGameDate(g.date)+'</span>'+st;
+    row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp'+ro+'">'+g.opp+'</span><span class="sched-date'+ro+'">'+formatGameDate(g.date)+'</span>'+previewBtn+st;
     el.appendChild(row);
   });
 }
@@ -990,27 +1008,25 @@ function getPositions(n){
   if(n===9)return['Pitcher','1B','2B','SS','3B','LF','LCF','CF','RF'];
   return['Pitcher','1B','2B','SS','3B','LF','CF','RF'];
 }
-function genLineup(){
-  if(!requireCoach())return;
-  if(!presentPlayers.length){showToast('No players present!');return;}
-  innings=[];var n=presentPlayers.length;
+// Pure lineup generator — no globals modified. Returns {innings, atBats}.
+function computeLineup(players, offset){
+  var n=players.length;
   var pos=getPositions(n);
   var pm={Pitcher:0,'1B':1,'2B':2,'SS':3,'3B':4,'LF':5,'CF':6,'RF':7,'Catcher':8,'LCF':9};
 
-  // --- Batting order: rotate by gamesPlayed so every player cycles through leadoff ---
-  // Preserves roster sort order; shifts the starting point each game.
-  var allPlayers=PLAYERS.filter(function(p){return presentPlayers.indexOf(p)>=0;});
-  presentPlayers.forEach(function(p){if(allPlayers.indexOf(p)<0)allPlayers.push(p);});
-  var offset=gamesPlayed%allPlayers.length;
-  var baseBat=allPlayers.slice(offset).concat(allPlayers.slice(0,offset));
+  // Batting order: rotate by offset so every player cycles through leadoff
+  var allPlayers=PLAYERS.filter(function(p){return players.indexOf(p)>=0;});
+  players.forEach(function(p){if(allPlayers.indexOf(p)<0)allPlayers.push(p);});
+  var off=offset%allPlayers.length;
+  var baseBat=allPlayers.slice(off).concat(allPlayers.slice(0,off));
 
-  // --- Fielding: score each player per position, lower = preferred ---
-  // Season history counts once; repeating a position within this game adds a heavy penalty.
-  var gamePosCnt={};presentPlayers.forEach(function(p){ensureStats(p);gamePosCnt[p]={};});
+  // Fielding: score each player per position, lower = preferred
+  var gamePosCnt={};players.forEach(function(p){ensureStats(p);gamePosCnt[p]={};});
 
+  var resultInnings=[];
   for(var i=0;i<3;i++){
     var bat=baseBat.slice();
-    var available=presentPlayers.slice();
+    var available=players.slice();
     var fld={};
     pos.forEach(function(position){
       var posIdx=pm[position];
@@ -1021,23 +1037,59 @@ function genLineup(){
         var gameCnt=gamePosCnt[pl][position]||0;
         var score=gameCnt*100+seasonCnt;
         if(score<bestScore){bestScore=score;best=pl;}
-        else if(score===bestScore&&Math.random()<0.5){best=pl;}
+        else if(score===bestScore){
+          // Deterministic tiebreak: lower jersey number wins, then alphabetical
+          var bestJ=parseInt(JERSEYS[best])||999,plJ=parseInt(JERSEYS[pl])||999;
+          if(plJ<bestJ||(plJ===bestJ&&pl<best)){best=pl;}
+        }
       }
       if(best===null)best=available[0];
       fld[position]=best;
       available.splice(available.indexOf(best),1);
       gamePosCnt[best][position]=(gamePosCnt[best][position]||0)+1;
     });
-    innings.push({bat:bat,fld:fld});
+    resultInnings.push({bat:bat,fld:fld});
   }
+  return{innings:resultInnings,atBats:resultInnings.map(function(inn){return inn.bat.map(function(){return{H:0,O:0,W:0,RBI:0,R:0};});})};
+}
 
-  atBats=innings.map(function(inn){return inn.bat.map(function(){return{H:0,O:0,W:0,RBI:0,R:0};});});
-  mvps=[];
+function genLineup(){
+  if(!requireCoach())return;
+  if(!presentPlayers.length){showToast('No players present!');return;}
+  var result=computeLineup(presentPlayers,gamesPlayed);
+  innings=result.innings;atBats=result.atBats;mvps=[];
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming';})||SCHEDULE[0];
   document.getElementById('game-title').textContent='Game '+(nx?nx.num:'')+' '+(nx?nx.opp:'');
   document.getElementById('game-sub').textContent=nx?nx.date+' \u00b7 '+nx.time:'';
   renderGame();go('screen-game');
   pushActiveGame();
+}
+
+function showPreview(gameNum){
+  if(!requireCoach())return;
+  var game=gameNum
+    ?SCHEDULE.find(function(g){return g.num===gameNum;})
+    :SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;})||SCHEDULE[0];
+  if(!game){showToast('No game found');return;}
+  var completedBefore=SCHEDULE.filter(function(g){return g.status==='done'&&g.num<game.num;}).length;
+  var result=computeLineup(PLAYERS.slice(),completedBefore);
+  document.getElementById('preview-title').textContent='Game '+game.num+' Preview';
+  document.getElementById('preview-sub').textContent=game.opp+' \u00b7 '+formatGameDate(game.date);
+  renderPreview(result.innings);
+  go('screen-preview');
+}
+
+function renderPreview(previewInnings){
+  var c=document.getElementById('preview-container');c.innerHTML='';
+  var banner=document.createElement('div');
+  banner.className='preview-banner';
+  banner.innerHTML='&#128065; Full-roster preview ('+PLAYERS.length+' players). Lineup will adjust automatically if players are marked absent during game setup.';
+  c.appendChild(banner);
+  previewInnings.forEach(function(inn,i){
+    var d=document.createElement('div');d.className='inning-card';
+    d.innerHTML='<div class="inning-header">Inning '+(i+1)+'</div><div class="inning-section"><div class="inning-section-title">BATTING ORDER</div>'+inn.bat.map(function(p,j){return'<div class="batting-row"><span class="batting-num">'+(j+1)+'</span><span class="batting-name">'+p+'</span><span class="player-check-num">#'+(JERSEYS[p]||'')+'</span></div>';}).join('')+'<div class="inning-section-title" style="margin-top:16px;">FIELDING</div><div class="fielding-grid">'+fldGrid(inn.fld)+'</div></div>';
+    c.appendChild(d);
+  });
 }
 
 function renderGame(){
