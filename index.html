@@ -868,6 +868,7 @@ async function chkPin(){
     if(data&&data.length>0){
       currentTeamId=data[0].team_id;
       currentTeamName=(data[0].teams&&data[0].teams.name)||'';
+      if(!currentTeamName&&currentTeamId){var tr=await db.from('teams').select('name').eq('id',currentTeamId).maybeSingle();if(tr.data)currentTeamName=tr.data.name||'';}
       localStorage.setItem('llm-team-id',String(currentTeamId));
       localStorage.setItem('llm-team-name',currentTeamName);
       await pullFromSupabase();
