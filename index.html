@@ -343,6 +343,7 @@
 
       <button class="btn btn-outline coach-only-el" id="send-text-btn" style="display:none;" onclick="generateWeeklyEmail()">&#128140; Generate Weekly Email</button>
       <button class="btn btn-primary" onclick="goSetup()">Start Game Setup &#8594;</button>
+      <button class="btn btn-primary" id="resume-game-btn" style="display:none;" onclick="resumeGame()">&#9654; Resume Game in Progress</button>
       <button class="btn btn-outline" id="live-game-btn" style="display:none;" onclick="goLiveGame()">&#9654; View Live Game</button>
     </div>
     <div class="section-card">
@@ -727,7 +728,13 @@ async function pullFromSupabase(){
   if(batting)batting.forEach(function(r){seasonBatting[r.player_name]={H:r.h,O:r.o,W:r.w,RBI:r.rbi,R:r.r};});
   if(hist)gameHistory=hist.map(function(g){return{gameNum:g.game_num,opp:g.opp,date:g.game_date,batting:g.batting,mvps:g.mvps||[]};});
   liveGameData=(cfg&&cfg.active_game)||null;
+  if(liveGameData&&isCoach&&liveGameData.innings&&liveGameData.innings.length){
+    innings=liveGameData.innings;
+    atBats=liveGameData.atBats||innings.map(function(inn){return inn.bat.map(function(){return{H:0,O:0,W:0,RBI:0,R:0};});});
+    presentPlayers=innings[0].bat.slice();
+  }
   updateLiveGameButton();
+  updateResumeButton();
   saveLocal();
 }
 
@@ -809,6 +816,7 @@ function applyCoachUI(){
   if(seasonTitle)seasonTitle.textContent=(currentTeamName||'Season')+' Info';
   var sendBtn=document.getElementById('send-text-btn');
   if(sendBtn)sendBtn.style.display=isCoach?'':'none';
+  updateResumeButton();
 }
 function requireCoach(){if(!isCoach){showToast('Coach login required');return false;}return true;}
 function requireAdmin(){if(!isAdmin){showToast('Admin access required');return false;}return true;}
@@ -1090,8 +1098,7 @@ function completeGame(){
   gamesPlayed++;
   if(nx)nx.status='done';
   save();
-  if(db&&currentTeamId)db.from('llm_config').upsert({id:'default',team_id:currentTeamId,active_game:null},{onConflict:'id,team_id'}).catch(function(){});
-  liveGameData=null;updateLiveGameButton();
+  clearActiveGame();
   showToast('Game complete! Great job team!');setTimeout(function(){go('screen-home');},1500);
 }
 
@@ -1255,6 +1262,19 @@ function resetStats(){if(!requireCoach())return;if(confirm('Reset all season sta
 function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
 
 // ── Live game (parent read-only view) ─────────────────────────────
+async function clearActiveGame(){
+  innings=[];atBats=[];presentPlayers=[];
+  liveGameData=null;updateLiveGameButton();updateResumeButton();
+  if(db&&currentTeamId){try{await db.from('llm_config').upsert({id:'default',team_id:currentTeamId,active_game:null},{onConflict:'id,team_id'});}catch(e){}}
+}
+function updateResumeButton(){
+  var btn=document.getElementById('resume-game-btn');
+  if(btn)btn.style.display=(isCoach&&innings.length>0)?'':'none';
+}
+function resumeGame(){
+  if(!innings.length){showToast('No game in progress');return;}
+  renderGame();go('screen-game');
+}
 async function pushActiveGame(){
   if(!db||!isCoach||!currentTeamId)return;
   var nx=SCHEDULE.find(function(g){return g.status==='upcoming'&&!g.rainout;})||SCHEDULE[0];
