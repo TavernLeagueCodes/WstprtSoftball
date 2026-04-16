@@ -1056,14 +1056,24 @@ function genLineup(){
 
 function renderSharedBattingHTML(){
   if(!innings.length)return'';
-  return innings[0].bat.map(function(p,j){var songUrl=SONGS[p]||'';var songBtn=songUrl?'<a class="song-play-btn" href="'+songUrl+'" target="_blank" title="Play '+p+'\'s walk-up song">&#127925;</a>':'';return'<div class="batting-row"><span class="batting-num">'+(j+1)+'</span><span class="batting-name">'+p+'</span><span class="player-check-num">#'+(JERSEYS[p]||'')+'</span>'+songBtn+'</div>';}).join('');
+  var innIdx=currentInnIdx;
+  var abBtns=['H','O','W','RBI','R'];var abLabels={H:'H',O:'Out',W:'BB',RBI:'RBI',R:'R'};
+  return innings[0].bat.map(function(p,j){
+    var isActive=gamePublished&&j===currentBatIdx;
+    var songUrl=SONGS[p]||'';var songBtn=songUrl?'<a class="song-play-btn" href="'+songUrl+'" target="_blank" title="Play '+p+'\'s walk-up song">&#127925;</a>':'';
+    var nameStyle=isActive?'color:var(--blue);font-weight:800;':'';
+    var upNow=isActive?'<span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--blue);background:#e3f0fb;padding:2px 8px;border-radius:10px;">UP NOW</span>':'';
+    var rowStyle=isActive?'background:#f0f7ff;border-radius:10px;padding:4px 6px;margin:2px -6px;':'';
+    var abRow='<div class="at-bat-row">'+abBtns.map(function(s){var cnt=atBats[innIdx]&&atBats[innIdx][j]?atBats[innIdx][j][s]:0;return'<div class="ab-stat s-'+s+'"><button class="ab-dec" onclick="decAB('+innIdx+','+j+',\''+s+'\')">&#8722;</button><span class="ab-lbl">'+abLabels[s]+'</span><span class="ab-count" id="ab-'+innIdx+'-'+j+'-'+s+'">'+cnt+'</span><button class="ab-inc" onclick="incAB('+innIdx+','+j+',\''+s+'\')">+</button></div>';}).join('')+'</div>';
+    return'<div class="batting-row" style="flex-wrap:wrap;align-items:flex-start;'+rowStyle+'"><div style="display:flex;align-items:center;gap:6px;width:100%;padding-top:2px;"><span class="batting-num">'+(j+1)+'</span><span class="batting-name" style="'+nameStyle+'">'+p+'</span><span class="player-check-num">#'+(JERSEYS[p]||'')+'</span>'+songBtn+upNow+'</div>'+abRow+'</div>';
+  }).join('');
 }
 function renderGame(){
   var c=document.getElementById('game-container');c.innerHTML='';
   if(!gamePublished){var pub=document.createElement('div');pub.id='publish-banner';pub.style.cssText='background:#e8f5e9;border:1.5px solid #81c784;border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;';pub.innerHTML='<div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#2e7d32;">&#128221; Draft Lineup</div><div style="font-size:12px;color:#388e3c;margin-top:2px;">Review and adjust below, then publish when ready. Parents can\'t see this yet.</div></div><button class="btn btn-green btn-sm" style="white-space:nowrap;flex-shrink:0;" onclick="publishGame()">Publish &#8594;</button>';c.appendChild(pub);}
   var abp=document.createElement('div');abp.id='at-bat-panel';abp.className='card';c.appendChild(abp);
   var batCard=document.createElement('div');batCard.className='card';batCard.style.marginBottom='14px';
-  batCard.innerHTML='<div class="inning-section-title" style="margin-bottom:10px;">BATTING ORDER <button class="adjust-btn" onclick="showBattingEdit()">&#9998; Adjust</button></div><div id="bat-list">'+renderSharedBattingHTML()+'</div>';
+  batCard.innerHTML='<div class="inning-section-title" style="margin-bottom:10px;">BATTING ORDER <button class="adjust-btn" onclick="showBattingEdit()">&#9998; Adjust</button><span id="bat-inning-lbl" style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text-light);">Inning '+(currentInnIdx+1)+'</span></div><div id="bat-list">'+renderSharedBattingHTML()+'</div>';
   c.appendChild(batCard);
   var tabsDiv=document.createElement('div');tabsDiv.id='inning-tabs';tabsDiv.style.cssText='display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px;-webkit-overflow-scrolling:touch;';c.appendChild(tabsDiv);
   innings.forEach(function(inn,i){
@@ -1114,29 +1124,36 @@ function renderAtBatPanel(){
     '<button class="btn btn-outline btn-sm" style="width:100%;padding:9px 0;" onclick="logAtBatQuick(\'R\',false)">+ Run</button>'+
     '</div>';
 }
+function refreshBattingCard(){
+  var batList=document.getElementById('bat-list');
+  if(batList&&!batEditOrder)batList.innerHTML=renderSharedBattingHTML();
+  var lbl=document.getElementById('bat-inning-lbl');
+  if(lbl)lbl.textContent='Inning '+(currentInnIdx+1);
+}
 function logAtBatQuick(stat,advance){
   if(advance===undefined)advance=(stat==='H'||stat==='O'||stat==='W');
   if(!atBats[currentInnIdx]||!atBats[currentInnIdx][currentBatIdx])return;
   atBats[currentInnIdx][currentBatIdx][stat]++;
-  var el=document.getElementById('ab-'+currentInnIdx+'-'+currentBatIdx+'-'+stat);
-  if(el)el.textContent=atBats[currentInnIdx][currentBatIdx][stat];
   if(advance){
     currentBatIdx=(currentBatIdx+1)%innings[currentInnIdx].bat.length;
     renderAtBatPanel();
-    showToast(stat==='H'?'Hit! &#9971;':stat==='O'?'Out':' Walk (BB)');
+    showToast(stat==='H'?'Hit! &#9971;':stat==='O'?'Out':'Walk (BB)');
   }else{
     showToast('+'+stat);
   }
+  refreshBattingCard();
   scheduleActiveGamePush();
 }
 function skipBatter(){
   currentBatIdx=(currentBatIdx+1)%innings[currentInnIdx].bat.length;
   renderAtBatPanel();
+  refreshBattingCard();
 }
 function jumpToInning(i){
   currentInnIdx=i;
   renderInningTabs();
   renderAtBatPanel();
+  refreshBattingCard();
   var card=document.getElementById('inning-card-'+i);
   if(card)card.scrollIntoView({behavior:'smooth',block:'start'});
 }
@@ -1164,6 +1181,8 @@ function publishGame(){
   gamePublished=true;
   var banner=document.getElementById('publish-banner');
   if(banner)banner.remove();
+  renderAtBatPanel();
+  refreshBattingCard();
   pushActiveGame();
   showToast('Lineup published! Parents can now see the live view.');
 }
