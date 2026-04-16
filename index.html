@@ -946,7 +946,11 @@ function renderHome(){
     var previewBtn='';
     var st=g.status==='done'
       ?'<button class="status-badge status-undo" onclick="event.stopPropagation();undoG('+g.num+')">&#8617; Undo</button><span class="status-badge status-done">Done</span>'
-      :'<button class="sched-rainout'+(isRainout?' active':'')+'" onclick="event.stopPropagation();toggleRainout('+g.num+')">'+(isRainout?'&#9928; Rained Out':'&#9888;&#65039; Rainout')+'</button><span class="status-badge status-upcoming">Upcoming</span>';
+      :isCoach
+        ?'<button class="sched-rainout'+(isRainout?' active':'')+'" onclick="event.stopPropagation();toggleRainout('+g.num+')">'+(isRainout?'&#9928; Rained Out':'&#9888;&#65039; Rainout')+'</button><span class="status-badge status-upcoming">Upcoming</span>'
+        :isRainout
+          ?'<span class="status-badge" style="background:#fff3e0;color:var(--orange-text);">&#9928; Rained Out</span>'
+          :'<span class="status-badge status-upcoming">Upcoming</span>';
     var ro=isRainout?' rained-out':'';
     row.innerHTML='<span class="sched-num">'+g.num+'</span><span class="sched-opp'+ro+'">'+g.opp+'</span><span class="sched-date'+ro+'">'+formatGameDate(g.date)+'</span>'+previewBtn+st;
     el.appendChild(row);
