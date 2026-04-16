@@ -728,7 +728,7 @@ async function pullFromSupabase(){
   }
   if(stats)stats.forEach(function(r){seasonStats[r.player_name]=r.counts;});
   if(batting)batting.forEach(function(r){seasonBatting[r.player_name]={H:r.h,O:r.o,W:r.w,RBI:r.rbi,R:r.r};});
-  if(hist)gameHistory=hist.map(function(g){return{gameNum:g.game_num,opp:g.opp,date:g.game_date,batting:g.batting,mvps:g.mvps||[]};});
+  if(hist)gameHistory=hist.map(function(g){return{gameNum:g.game_num,opp:g.opp,date:g.game_date,batting:g.batting,mvps:g.mvps||[],notes:g.notes||''};});
   liveGameData=(cfg&&cfg.active_game)||null;
   if(liveGameData&&isCoach&&liveGameData.innings&&liveGameData.innings.length){
     innings=liveGameData.innings;
@@ -760,7 +760,7 @@ async function pushToSupabase(){
   if(gameHistory.length){
     var existing=await db.from('llm_game_history').select('game_num').eq('team_id',tid);
     var existNums=new Set((existing.data||[]).map(function(r){return r.game_num;}));
-    var newRows=gameHistory.filter(function(g){return!existNums.has(g.gameNum);}).map(function(g){return{team_id:tid,game_num:g.gameNum,opp:g.opp,game_date:g.date,batting:g.batting,mvps:g.mvps||[]};});
+    var newRows=gameHistory.filter(function(g){return!existNums.has(g.gameNum);}).map(function(g){return{team_id:tid,game_num:g.gameNum,opp:g.opp,game_date:g.date,batting:g.batting,mvps:g.mvps||[],notes:g.notes||null};});
     if(newRows.length)await db.from('llm_game_history').insert(newRows);
   }
   setSyncStatus('online');

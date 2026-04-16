@@ -49,6 +49,9 @@ alter table llm_season_batting
 alter table llm_game_history
   add column if not exists team_id integer references teams(id) on delete cascade;
 
+alter table llm_game_history
+  add column if not exists notes text;
+
 -- 4. Update primary keys to include team_id -----------------------
 -- llm_config: old PK was just (id), new PK is (id, team_id)
 alter table llm_config drop constraint if exists llm_config_pkey;
