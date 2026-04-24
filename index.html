@@ -589,6 +589,7 @@ let players = [], games = [], lineups = [], atBats = [], config = {}, gamePlayer
 let pinBuffer = '';
 let logAbPlayerId = null, logAbGameId = null, selectedResult = null, rbiCount = 0;
 let currentGameId = null, startLiveGameId = null, endLiveGameId = null;
+let _pendingRoster = [], _pendingSchedule = [];
 
 const POSITIONS   = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF','EH','DH'];
 const AB_RESULTS  = ['single','double','triple','hr','k','fc','out'];
@@ -1138,6 +1139,7 @@ function handleRosterFile(input) {
 }
 
 function previewRoster(rows) {
+  _pendingRoster = rows;
   const el = document.getElementById('roster-preview');
   if (!rows.length) { el.innerHTML='<div style="color:var(--red)">No valid rows found</div>'; return; }
   let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} player(s) found:</div>
@@ -1146,15 +1148,17 @@ function previewRoster(rows) {
     html += `<div class="roster-row"><div class="roster-num">${esc(r.number||'—')}</div><div class="roster-name">${esc(r.name)}</div><div class="roster-pin">${esc(r.pin)}</div></div>`;
   });
   html += '</div>';
-  html += `<button class="btn btn-primary" onclick="importRoster(${JSON.stringify(rows).replace(/"/g,'&quot;')})">Import ${rows.length} Players</button>`;
+  html += `<button class="btn btn-primary" id="roster-import-btn">Import ${rows.length} Players</button>`;
   el.innerHTML = html;
+  document.getElementById('roster-import-btn').onclick = importRoster;
 }
 
-async function importRoster(rows) {
+async function importRoster() {
+  const rows = _pendingRoster;
   let ok=0, fail=0;
   for (const r of rows) {
-    if (!r.name || !/^\d{4}$/.test(r.pin||'')) { fail++; continue; }
-    const {error} = await sb.from('sb_players').insert({name:r.name,number:r.number||null,pin:r.pin,active:true});
+    if (!r.name || !/^\d{4}$/.test((r.pin||'').trim())) { fail++; continue; }
+    const {error} = await sb.from('sb_players').insert({name:r.name.trim(),number:(r.number||'').trim()||null,pin:r.pin.trim(),active:true});
     if (error) fail++; else ok++;
   }
   closeModal('modal-roster-upload');
@@ -1265,6 +1269,7 @@ function handleScheduleFile(input) {
 }
 
 function previewSchedule(rows) {
+  _pendingSchedule = rows;
   const el = document.getElementById('schedule-preview');
   if (!rows.length) { el.innerHTML='<div style="color:var(--red)">No valid rows found</div>'; return; }
   let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} game(s) found:</div>
@@ -1277,19 +1282,19 @@ function previewSchedule(rows) {
     </div>`;
   });
   html += '</div>';
-  html += `<button class="btn btn-primary" onclick='importSchedule(${JSON.stringify(rows).replace(/'/g,"\\'")})'>${rows.length} Game(s) importieren</button>`;
+  html += `<button class="btn btn-primary" id="schedule-import-btn">Import ${rows.length} Games</button>`;
   el.innerHTML = html;
-  // Re-bind properly
-  el.querySelector('.btn').onclick = () => importSchedule(rows);
+  document.getElementById('schedule-import-btn').onclick = importSchedule;
 }
 
-async function importSchedule(rows) {
+async function importSchedule() {
+  const rows = _pendingSchedule;
   let ok=0, fail=0;
   for (const r of rows) {
-    const date = r.date || r.game_date;
-    const opponent = r.opponent;
-    const home_away = (r.homeaway||r.home_away||'home').toLowerCase()==='home'?'home':'away';
-    const location = r.location || null;
+    const date = (r.date || r.game_date || '').trim();
+    const opponent = (r.opponent || '').trim();
+    const home_away = (r.homeaway||r.home_away||'home').trim().toLowerCase()==='home'?'home':'away';
+    const location = (r.location||'').trim() || null;
     if (!date || !opponent) { fail++; continue; }
     const {error} = await sb.from('sb_games').insert({game_date:date,opponent,home_away,location,status:'scheduled'});
     if (error) fail++; else ok++;
