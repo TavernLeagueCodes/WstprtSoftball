@@ -1,177 +1,100 @@
 -- ================================================================
--- Little League Manager — Supabase Setup (v2 multi-team)
+-- MinuteMen Softball — Supabase Setup
 -- Run this entire script in the Supabase SQL Editor once.
 -- Dashboard → SQL Editor → New Query → paste → Run
---
--- Safe to run on an existing v1 database — uses ALTER TABLE
--- to add team_id to existing tables rather than recreating them.
--- To revert to v1 single-team, run supabase-setup-v1-backup.sql
 -- ================================================================
 
--- 1. Teams --------------------------------------------------------
+-- 1. App config (team name, season, admin PIN) --------------------
+create table if not exists sb_config (
+  key   text primary key,
+  value text
+);
 
-create table if not exists teams (
+insert into sb_config (key, value) values
+  ('team_name',  'MinuteMen'),
+  ('season',     '2026'),
+  ('admin_pin',  '0000')
+on conflict (key) do nothing;
+
+-- 2. Players (roster) ---------------------------------------------
+create table if not exists sb_players (
+  id         serial primary key,
+  name       text not null,
+  number     text,
+  pin        text not null,
+  active     boolean not null default true,
+  created_at timestamptz default now()
+);
+
+-- 3. Games (schedule) ---------------------------------------------
+create table if not exists sb_games (
   id          serial primary key,
-  name        text not null,
-  season      text,
+  game_date   date not null,
+  opponent    text not null,
+  home_away   text not null default 'home',
+  location    text,
+  our_score   integer,
+  opp_score   integer,
+  status      text not null default 'scheduled',  -- scheduled | final | cancelled
+  notes       text,
   created_at  timestamptz default now()
 );
 
--- 2. Coach → Team assignments ------------------------------------
--- Links a Supabase auth user (coach) to one or more teams.
--- is_admin = true means the user has full Settings access.
-
-create table if not exists coach_teams (
-  id         serial primary key,
-  user_id    uuid not null references auth.users(id) on delete cascade,
-  team_id    integer not null references teams(id) on delete cascade,
-  is_admin   boolean not null default false,
-  unique(user_id, team_id)
+-- 4. Lineups (batting order per game) -----------------------------
+create table if not exists sb_lineups (
+  id            serial primary key,
+  game_id       integer not null references sb_games(id) on delete cascade,
+  player_id     integer not null references sb_players(id) on delete cascade,
+  batting_order integer not null,
+  position      text,
+  unique(game_id, batting_order),
+  unique(game_id, player_id)
 );
 
--- 3. Add team_id to existing tables (safe if already added) -------
+-- 5. At-bats (core stats record) ----------------------------------
+-- result: single | double | triple | hr | bb | k | sf | fc | out
+create table if not exists sb_at_bats (
+  id         serial primary key,
+  game_id    integer not null references sb_games(id) on delete cascade,
+  player_id  integer not null references sb_players(id) on delete cascade,
+  inning     integer,
+  result     text not null,
+  rbi        integer not null default 0,
+  created_at timestamptz default now()
+);
 
-alter table llm_config
-  add column if not exists team_id integer references teams(id) on delete cascade;
+-- 6. Row Level Security -------------------------------------------
 
-alter table llm_players
-  add column if not exists team_id integer references teams(id) on delete cascade;
+alter table sb_config     enable row level security;
+alter table sb_players    enable row level security;
+alter table sb_games      enable row level security;
+alter table sb_lineups    enable row level security;
+alter table sb_at_bats    enable row level security;
 
-alter table llm_schedule
-  add column if not exists team_id integer references teams(id) on delete cascade;
+-- Everyone can read all tables (PIN check is handled in JS)
+create policy "public read config"    on sb_config   for select using (true);
+create policy "public read players"   on sb_players  for select using (true);
+create policy "public read games"     on sb_games    for select using (true);
+create policy "public read lineups"   on sb_lineups  for select using (true);
+create policy "public read at_bats"   on sb_at_bats  for select using (true);
 
-alter table llm_stats
-  add column if not exists team_id integer references teams(id) on delete cascade;
+-- Players (anon) can insert and delete their own at-bats
+create policy "anon insert at_bats"   on sb_at_bats  for insert to anon with check (true);
+create policy "anon delete at_bats"   on sb_at_bats  for delete to anon using (true);
 
-alter table llm_season_batting
-  add column if not exists team_id integer references teams(id) on delete cascade;
-
-alter table llm_game_history
-  add column if not exists team_id integer references teams(id) on delete cascade;
-
-alter table llm_game_history
-  add column if not exists notes text;
-
--- 4. Update primary keys to include team_id -----------------------
--- llm_config: old PK was just (id), new PK is (id, team_id)
-alter table llm_config drop constraint if exists llm_config_pkey;
-alter table llm_config add primary key (id, team_id);
-
--- llm_stats: old PK was just (player_name), new PK is (player_name, team_id)
-alter table llm_stats drop constraint if exists llm_stats_pkey;
-alter table llm_stats add primary key (player_name, team_id);
-
--- llm_season_batting: old PK was just (player_name)
-alter table llm_season_batting drop constraint if exists llm_season_batting_pkey;
-alter table llm_season_batting add primary key (player_name, team_id);
-
--- 5. Row Level Security ------------------------------------------
-
-alter table teams                enable row level security;
-alter table coach_teams          enable row level security;
-alter table llm_config           enable row level security;
-alter table llm_players          enable row level security;
-alter table llm_schedule         enable row level security;
-alter table llm_stats            enable row level security;
-alter table llm_season_batting   enable row level security;
-alter table llm_game_history     enable row level security;
-
--- Helper: is the current user assigned to a given team?
-create or replace function user_has_team(tid integer)
-returns boolean language sql security definer as $$
-  select exists (
-    select 1 from coach_teams
-    where user_id = auth.uid() and team_id = tid
-  );
-$$;
-
--- Helper: is the current user an admin for a given team?
-create or replace function user_is_admin(tid integer)
-returns boolean language sql security definer as $$
-  select exists (
-    select 1 from coach_teams
-    where user_id = auth.uid() and team_id = tid and is_admin = true
-  );
-$$;
-
--- Drop existing policies before recreating (avoids conflicts)
-drop policy if exists "public read" on llm_config;
-drop policy if exists "coach write" on llm_config;
-drop policy if exists "public read" on llm_players;
-drop policy if exists "coach write" on llm_players;
-drop policy if exists "public read" on llm_schedule;
-drop policy if exists "coach write" on llm_schedule;
-drop policy if exists "public read" on llm_stats;
-drop policy if exists "coach write" on llm_stats;
-drop policy if exists "public read" on llm_season_batting;
-drop policy if exists "coach write" on llm_season_batting;
-drop policy if exists "public read" on llm_game_history;
-drop policy if exists "coach write" on llm_game_history;
-
--- teams: authenticated users can see teams they are assigned to
-create policy "coach read own teams"  on teams for select to authenticated
-  using (exists (select 1 from coach_teams where user_id = auth.uid() and team_id = teams.id));
-create policy "admin insert teams"    on teams for insert to authenticated with check (true);
-create policy "admin update teams"    on teams for update to authenticated
-  using (user_is_admin(id));
-create policy "admin delete teams"    on teams for delete to authenticated
-  using (user_is_admin(id));
-
--- coach_teams: coaches can see their own assignments; only admins can manage
-create policy "read own assignments"  on coach_teams for select to authenticated
-  using (user_id = auth.uid() or user_is_admin(team_id));
-create policy "admin manage coaches"  on coach_teams for all to authenticated
-  using (user_is_admin(team_id)) with check (user_is_admin(team_id));
-
--- llm_config: anyone can read; only admins can write
-create policy "public read config"    on llm_config for select using (true);
-create policy "admin write config"    on llm_config for all to authenticated
-  using (user_is_admin(team_id)) with check (user_is_admin(team_id));
-
--- llm_players: anyone can read; only admins can write
-create policy "public read players"   on llm_players for select using (true);
-create policy "admin write players"   on llm_players for all to authenticated
-  using (user_is_admin(team_id)) with check (user_is_admin(team_id));
-
--- llm_schedule: anyone can read; only admins can write
-create policy "public read schedule"  on llm_schedule for select using (true);
-create policy "admin write schedule"  on llm_schedule for all to authenticated
-  using (user_is_admin(team_id)) with check (user_is_admin(team_id));
-
--- llm_stats: anyone can read; coaches and admins can write
-create policy "public read stats"     on llm_stats for select using (true);
-create policy "coach write stats"     on llm_stats for all to authenticated
-  using (user_has_team(team_id)) with check (user_has_team(team_id));
-
--- llm_season_batting: anyone can read; coaches and admins can write
-create policy "public read batting"   on llm_season_batting for select using (true);
-create policy "coach write batting"   on llm_season_batting for all to authenticated
-  using (user_has_team(team_id)) with check (user_has_team(team_id));
-
--- llm_game_history: anyone can read; coaches and admins can write
-create policy "public read history"   on llm_game_history for select using (true);
-create policy "coach write history"   on llm_game_history for all to authenticated
-  using (user_has_team(team_id)) with check (user_has_team(team_id));
+-- Admin (authenticated Supabase user) has full access
+create policy "auth manage config"    on sb_config   for all to authenticated using (true) with check (true);
+create policy "auth manage players"   on sb_players  for all to authenticated using (true) with check (true);
+create policy "auth manage games"     on sb_games    for all to authenticated using (true) with check (true);
+create policy "auth manage lineups"   on sb_lineups  for all to authenticated using (true) with check (true);
+create policy "auth manage at_bats"   on sb_at_bats  for all to authenticated using (true) with check (true);
 
 -- ================================================================
 -- After running this script:
--- 1. Create your admin user: Authentication → Users → Add User
---    (skip if you already have one from v1)
--- 2. Disable email confirmation: Authentication → Providers → Email
---    → turn off "Confirm email"
--- 3. Insert your first team:
---    INSERT INTO teams (name, season) VALUES ('Team Name', '2025');
--- 4. Assign yourself as admin (get your UUID from Authentication → Users):
---    INSERT INTO coach_teams (user_id, team_id, is_admin)
---    VALUES ('<your-auth-user-uuid>', 1, true);
--- 5. Update existing data to belong to your team:
---    UPDATE llm_config SET team_id = 1;
---    UPDATE llm_players SET team_id = 1;
---    UPDATE llm_schedule SET team_id = 1;
---    UPDATE llm_stats SET team_id = 1;
---    UPDATE llm_season_batting SET team_id = 1;
---    UPDATE llm_game_history SET team_id = 1;
--- 6. Add coaches via Authentication → Users, then assign them:
---    INSERT INTO coach_teams (user_id, team_id, is_admin)
---    VALUES ('<coach-uuid>', 1, false);
+-- 1. Authentication → Providers → Email → disable "Confirm email"
+-- 2. Authentication → Users → Add User (this is the manager account)
+-- 3. Change admin_pin from '0000' to your desired 4-digit PIN:
+--    UPDATE sb_config SET value = '1234' WHERE key = 'admin_pin';
+-- 4. Add players via the app's admin panel, or via SQL:
+--    INSERT INTO sb_players (name, number, pin) VALUES ('John Smith', '7', '4321');
 -- ================================================================
