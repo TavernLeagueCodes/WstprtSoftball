@@ -441,6 +441,7 @@ body.dark .scorebook tfoot td{background:#151f2e;}
       Example: <code>John Smith,7,1234</code>
     </div>
     <div id="roster-preview" style="margin-top:12px;"></div>
+    <button class="btn btn-primary" id="roster-import-btn" style="display:none;" onclick="importRoster()">Import Players</button>
     <button class="btn btn-outline" onclick="closeModal('modal-roster-upload')">Cancel</button>
   </div>
 </div>
@@ -460,6 +461,7 @@ body.dark .scorebook tfoot td{background:#151f2e;}
       Example: <code>2026-05-01,Tigers,home,Central Park</code>
     </div>
     <div id="schedule-preview" style="margin-top:12px;"></div>
+    <button class="btn btn-primary" id="schedule-import-btn" style="display:none;" onclick="importSchedule()">Import Games</button>
     <button class="btn btn-outline" onclick="closeModal('modal-schedule-upload')">Cancel</button>
   </div>
 </div>
@@ -1141,16 +1143,21 @@ function handleRosterFile(input) {
 function previewRoster(rows) {
   _pendingRoster = rows;
   const el = document.getElementById('roster-preview');
-  if (!rows.length) { el.innerHTML='<div style="color:var(--red)">No valid rows found</div>'; return; }
+  const btn = document.getElementById('roster-import-btn');
+  if (!rows.length) {
+    el.innerHTML = '<div style="color:var(--red)">No valid rows found</div>';
+    btn.style.display = 'none';
+    return;
+  }
   let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} player(s) found:</div>
   <div class="section-card" style="margin-bottom:12px;">`;
   rows.forEach(r => {
     html += `<div class="roster-row"><div class="roster-num">${esc(r.number||'—')}</div><div class="roster-name">${esc(r.name)}</div><div class="roster-pin">${esc(r.pin)}</div></div>`;
   });
   html += '</div>';
-  html += `<button class="btn btn-primary" id="roster-import-btn">Import ${rows.length} Players</button>`;
   el.innerHTML = html;
-  document.getElementById('roster-import-btn').onclick = importRoster;
+  btn.textContent = `Import ${rows.length} Players`;
+  btn.style.display = '';
 }
 
 async function importRoster() {
@@ -1271,7 +1278,12 @@ function handleScheduleFile(input) {
 function previewSchedule(rows) {
   _pendingSchedule = rows;
   const el = document.getElementById('schedule-preview');
-  if (!rows.length) { el.innerHTML='<div style="color:var(--red)">No valid rows found</div>'; return; }
+  const btn = document.getElementById('schedule-import-btn');
+  if (!rows.length) {
+    el.innerHTML = '<div style="color:var(--red)">No valid rows found</div>';
+    btn.style.display = 'none';
+    return;
+  }
   let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} game(s) found:</div>
   <div class="section-card" style="margin-bottom:12px;">`;
   rows.forEach(r => {
@@ -1282,9 +1294,9 @@ function previewSchedule(rows) {
     </div>`;
   });
   html += '</div>';
-  html += `<button class="btn btn-primary" id="schedule-import-btn">Import ${rows.length} Games</button>`;
   el.innerHTML = html;
-  document.getElementById('schedule-import-btn').onclick = importSchedule;
+  btn.textContent = `Import ${rows.length} Games`;
+  btn.style.display = '';
 }
 
 async function importSchedule() {
