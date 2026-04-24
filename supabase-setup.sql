@@ -4,19 +4,18 @@
 -- Dashboard → SQL Editor → New Query → paste → Run
 -- ================================================================
 
--- 1. App config (team name, season, admin PIN) --------------------
+-- 1. App config ---------------------------------------------------
 create table if not exists sb_config (
   key   text primary key,
   value text
 );
-
 insert into sb_config (key, value) values
   ('team_name',  'MinuteMen'),
   ('season',     '2026'),
   ('admin_pin',  '0000')
 on conflict (key) do nothing;
 
--- 2. Players (roster) ---------------------------------------------
+-- 2. Players ------------------------------------------------------
 create table if not exists sb_players (
   id         serial primary key,
   name       text not null,
@@ -26,7 +25,8 @@ create table if not exists sb_players (
   created_at timestamptz default now()
 );
 
--- 3. Games (schedule) ---------------------------------------------
+-- 3. Games --------------------------------------------------------
+-- status: scheduled | live | final | cancelled
 create table if not exists sb_games (
   id          serial primary key,
   game_date   date not null,
@@ -35,12 +35,19 @@ create table if not exists sb_games (
   location    text,
   our_score   integer,
   opp_score   integer,
-  status      text not null default 'scheduled',  -- scheduled | final | cancelled
+  status      text not null default 'scheduled',
   notes       text,
   created_at  timestamptz default now()
 );
 
--- 4. Lineups (batting order per game) -----------------------------
+-- 4. Game players (who is playing in each game) -------------------
+create table if not exists sb_game_players (
+  game_id   integer not null references sb_games(id) on delete cascade,
+  player_id integer not null references sb_players(id) on delete cascade,
+  primary key (game_id, player_id)
+);
+
+-- 5. Lineups (batting order per game) -----------------------------
 create table if not exists sb_lineups (
   id            serial primary key,
   game_id       integer not null references sb_games(id) on delete cascade,
@@ -51,7 +58,7 @@ create table if not exists sb_lineups (
   unique(game_id, player_id)
 );
 
--- 5. At-bats (core stats record) ----------------------------------
+-- 6. At-bats ------------------------------------------------------
 -- result: single | double | triple | hr | bb | k | sf | fc | out
 create table if not exists sb_at_bats (
   id         serial primary key,
@@ -63,38 +70,50 @@ create table if not exists sb_at_bats (
   created_at timestamptz default now()
 );
 
--- 6. Row Level Security -------------------------------------------
+-- 7. Row Level Security -------------------------------------------
+alter table sb_config        enable row level security;
+alter table sb_players       enable row level security;
+alter table sb_games         enable row level security;
+alter table sb_game_players  enable row level security;
+alter table sb_lineups       enable row level security;
+alter table sb_at_bats       enable row level security;
 
-alter table sb_config     enable row level security;
-alter table sb_players    enable row level security;
-alter table sb_games      enable row level security;
-alter table sb_lineups    enable row level security;
-alter table sb_at_bats    enable row level security;
+-- Public read on everything
+create policy "public read config"       on sb_config       for select using (true);
+create policy "public read players"      on sb_players      for select using (true);
+create policy "public read games"        on sb_games        for select using (true);
+create policy "public read game_players" on sb_game_players for select using (true);
+create policy "public read lineups"      on sb_lineups      for select using (true);
+create policy "public read at_bats"      on sb_at_bats      for select using (true);
 
--- Everyone can read all tables (PIN check is handled in JS)
-create policy "public read config"    on sb_config   for select using (true);
-create policy "public read players"   on sb_players  for select using (true);
-create policy "public read games"     on sb_games    for select using (true);
-create policy "public read lineups"   on sb_lineups  for select using (true);
-create policy "public read at_bats"   on sb_at_bats  for select using (true);
+-- Anon (PIN users) can insert/delete at-bats ONLY during a live game
+create policy "anon insert at_bats" on sb_at_bats for insert to anon
+  with check (
+    exists (select 1 from sb_games where id = game_id and status = 'live')
+  );
+create policy "anon delete at_bats" on sb_at_bats for delete to anon
+  using (
+    exists (select 1 from sb_games where id = game_id and status = 'live')
+  );
 
--- Players (anon) can insert and delete their own at-bats
-create policy "anon insert at_bats"   on sb_at_bats  for insert to anon with check (true);
-create policy "anon delete at_bats"   on sb_at_bats  for delete to anon using (true);
+-- Anon can update game status (to start/end live games)
+create policy "anon update games" on sb_games for update to anon using (true) with check (true);
 
--- Admin (authenticated Supabase user) has full access
-create policy "auth manage config"    on sb_config   for all to authenticated using (true) with check (true);
-create policy "auth manage players"   on sb_players  for all to authenticated using (true) with check (true);
-create policy "auth manage games"     on sb_games    for all to authenticated using (true) with check (true);
-create policy "auth manage lineups"   on sb_lineups  for all to authenticated using (true) with check (true);
-create policy "auth manage at_bats"   on sb_at_bats  for all to authenticated using (true) with check (true);
+-- Anon can manage game players (who is playing in each game)
+create policy "anon manage game_players" on sb_game_players for all to anon using (true) with check (true);
+
+-- Authenticated (admin Supabase user) has full access to everything
+create policy "auth manage config"       on sb_config       for all to authenticated using (true) with check (true);
+create policy "auth manage players"      on sb_players      for all to authenticated using (true) with check (true);
+create policy "auth manage games"        on sb_games        for all to authenticated using (true) with check (true);
+create policy "auth manage game_players" on sb_game_players for all to authenticated using (true) with check (true);
+create policy "auth manage lineups"      on sb_lineups      for all to authenticated using (true) with check (true);
+create policy "auth manage at_bats"      on sb_at_bats      for all to authenticated using (true) with check (true);
 
 -- ================================================================
 -- After running this script:
 -- 1. Authentication → Providers → Email → disable "Confirm email"
--- 2. Authentication → Users → Add User (this is the manager account)
--- 3. Change admin_pin from '0000' to your desired 4-digit PIN:
+-- 2. Authentication → Users → Add User (your manager account)
+-- 3. Change admin_pin:
 --    UPDATE sb_config SET value = '1234' WHERE key = 'admin_pin';
--- 4. Add players via the app's admin panel, or via SQL:
---    INSERT INTO sb_players (name, number, pin) VALUES ('John Smith', '7', '4321');
 -- ================================================================

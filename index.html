@@ -6,7 +6,7 @@
 <title>MinuteMen Softball</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-:root{--blue:#0d47a1;--blue-dark:#002171;--blue-light:#e3f0fb;--green:#388e3c;--red:#c62828;--red-light:#ffcdd2;--gold:#f9a825;--gold-light:#fff8e1;--bg:#f0f4f8;--white:#fff;--text:#1a2a3a;--text-light:#6b7c93;--border:#d0dae6;--shadow:0 2px 12px rgba(0,0,0,.10);--radius:14px;}
+:root{--blue:#0d47a1;--blue-dark:#002171;--blue-light:#e3f0fb;--green:#388e3c;--red:#c62828;--red-light:#ffcdd2;--gold:#f9a825;--gold-light:#fff8e1;--live:#d32f2f;--bg:#f0f4f8;--white:#fff;--text:#1a2a3a;--text-light:#6b7c93;--border:#d0dae6;--shadow:0 2px 12px rgba(0,0,0,.10);--radius:14px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
 .screen{display:none;min-height:100vh;flex-direction:column;}
@@ -41,6 +41,15 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .content{flex:1;overflow-y:auto;}
 .content-inner{max-width:700px;margin:0 auto;padding:18px 14px 90px;}
 
+/* LIVE BANNER */
+.live-banner{background:var(--live);color:white;padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:opacity .15s;}
+.live-banner:active{opacity:.85;}
+.live-dot{width:10px;height:10px;border-radius:50%;background:white;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-label{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+.live-game-name{font-size:15px;font-weight:700;flex:1;}
+.live-enter{font-size:13px;font-weight:700;background:rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;}
+
 /* CARDS */
 .card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:14px;}
 .card-label{font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
@@ -56,32 +65,37 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .btn-green{background:var(--green);color:white;}
 .btn-outline{background:white;border:1.5px solid var(--border);color:var(--text);}
 .btn-red{background:var(--red);color:white;}
-.btn-sm{width:auto;padding:7px 14px;font-size:13px;border-radius:9px;margin-bottom:0;}
 .btn-gold{background:var(--gold);color:#1a2a3a;}
+.btn-live{background:var(--live);color:white;}
+.btn-sm{width:auto;padding:7px 14px;font-size:13px;border-radius:9px;margin-bottom:0;}
 
-/* GAME CARDS */
-.game-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px;cursor:pointer;transition:transform .1s;}
-.game-card:active{transform:scale(.99);}
-.game-card-header{background:var(--blue);color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
-.game-card-title{font-size:16px;font-weight:800;}
-.game-card-sub{font-size:12px;opacity:.85;}
-.game-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+/* SCHEDULE ROWS */
+.sched-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f4f8;gap:10px;cursor:pointer;transition:background .1s;}
+.sched-row:last-child{border-bottom:none;}
+.sched-row:active{background:#f5f7f9;}
+.sched-date-col{font-size:13px;color:var(--text-light);width:64px;flex-shrink:0;}
+.sched-opp{flex:1;font-size:14px;font-weight:600;}
+.sched-score{font-size:13px;font-weight:700;}
+
+/* BADGES */
+.game-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;}
 .badge-home{background:#e8f5e9;color:#2e7d32;}
 .badge-away{background:var(--blue-light);color:var(--blue);}
 .badge-final{background:#f3e5f5;color:#6a1b9a;}
 .badge-cancelled{background:#f5f5f5;color:#616161;}
-.game-card-body{padding:14px 16px;}
-.game-info-row{display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px;color:var(--text-light);}
-.game-score{font-size:22px;font-weight:800;color:var(--text);}
-.score-sep{font-size:16px;font-weight:400;color:var(--text-light);margin:0 4px;}
+.badge-live{background:#ffebee;color:var(--live);animation:pulse 1.2s infinite;}
+
+/* GAME SCORE */
+.game-score{font-size:28px;font-weight:800;}
+.score-sep{font-size:18px;font-weight:400;color:var(--text-light);margin:0 6px;}
 .win-score{color:var(--green);}
 .loss-score{color:var(--red);}
 
 /* STATS TABLE */
 .stats-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-.stats-table{width:100%;border-collapse:collapse;font-size:13px;min-width:600px;}
+.stats-table{width:100%;border-collapse:collapse;font-size:13px;min-width:580px;}
 .stats-table th{background:var(--blue);color:white;padding:8px 10px;text-align:center;font-size:12px;font-weight:700;white-space:nowrap;}
-.stats-table th:first-child{text-align:left;min-width:110px;}
+.stats-table th:first-child{text-align:left;min-width:100px;}
 .stats-table td{padding:8px 10px;text-align:center;border-bottom:1px solid #f0f4f8;}
 .stats-table td:first-child{text-align:left;font-weight:700;color:var(--blue);}
 .stats-table tr:last-child td{border-bottom:none;}
@@ -96,24 +110,15 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .ab-btn{padding:18px 8px;border:2px solid transparent;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;transition:all .15s;text-align:center;background:white;box-shadow:var(--shadow);}
 .ab-btn:active{transform:scale(.96);}
 .ab-btn.selected{border-width:3px;}
-.ab-1b{border-color:#81c784;color:#2e7d32;background:#f1f8e9;}
-.ab-1b.selected{background:#c8e6c9;border-color:#2e7d32;}
-.ab-2b{border-color:#64b5f6;color:#1565c0;background:#e3f0fb;}
-.ab-2b.selected{background:#bbdefb;border-color:#1565c0;}
-.ab-3b{border-color:#ce93d8;color:#6a1b9a;background:#f3e5f5;}
-.ab-3b.selected{background:#e1bee7;border-color:#6a1b9a;}
-.ab-hr{border-color:#ffb74d;color:#e65100;background:#fff8f0;}
-.ab-hr.selected{background:#ffe0b2;border-color:#e65100;}
-.ab-bb{border-color:#4fc3f7;color:#01579b;background:#e1f5fe;}
-.ab-bb.selected{background:#b3e5fc;border-color:#01579b;}
-.ab-k{border-color:#e57373;color:#b71c1c;background:#ffebee;}
-.ab-k.selected{background:#ffcdd2;border-color:#b71c1c;}
-.ab-sf{border-color:#ffd54f;color:#f57f17;background:#fffde7;}
-.ab-sf.selected{background:#fff9c4;border-color:#f57f17;}
-.ab-fc{border-color:#90a4ae;color:#37474f;background:#f5f7f8;}
-.ab-fc.selected{background:#cfd8dc;border-color:#37474f;}
-.ab-out{border-color:#e0e0e0;color:#616161;background:white;}
-.ab-out.selected{background:#eeeeee;border-color:#616161;}
+.ab-1b{border-color:#81c784;color:#2e7d32;background:#f1f8e9;}.ab-1b.selected{background:#c8e6c9;border-color:#2e7d32;}
+.ab-2b{border-color:#64b5f6;color:#1565c0;background:#e3f0fb;}.ab-2b.selected{background:#bbdefb;border-color:#1565c0;}
+.ab-3b{border-color:#ce93d8;color:#6a1b9a;background:#f3e5f5;}.ab-3b.selected{background:#e1bee7;border-color:#6a1b9a;}
+.ab-hr{border-color:#ffb74d;color:#e65100;background:#fff8f0;}.ab-hr.selected{background:#ffe0b2;border-color:#e65100;}
+.ab-bb{border-color:#4fc3f7;color:#01579b;background:#e1f5fe;}.ab-bb.selected{background:#b3e5fc;border-color:#01579b;}
+.ab-k{border-color:#e57373;color:#b71c1c;background:#ffebee;}.ab-k.selected{background:#ffcdd2;border-color:#b71c1c;}
+.ab-sf{border-color:#ffd54f;color:#f57f17;background:#fffde7;}.ab-sf.selected{background:#fff9c4;border-color:#f57f17;}
+.ab-fc{border-color:#90a4ae;color:#37474f;background:#f5f7f8;}.ab-fc.selected{background:#cfd8dc;border-color:#37474f;}
+.ab-out{border-color:#e0e0e0;color:#616161;background:white;}.ab-out.selected{background:#eeeeee;border-color:#616161;}
 .ab-result-label{font-size:11px;font-weight:400;opacity:.75;margin-top:2px;}
 
 /* RBI COUNTER */
@@ -121,7 +126,7 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .rbi-btn{width:44px;height:44px;border-radius:50%;border:none;font-size:24px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .rbi-minus{background:#ffebee;color:var(--red);}
 .rbi-plus{background:#e8f5e9;color:var(--green);}
-.rbi-val{font-size:32px;font-weight:800;min-width:40px;text-align:center;color:var(--text);}
+.rbi-val{font-size:32px;font-weight:800;min-width:40px;text-align:center;}
 
 /* LINEUP */
 .lineup-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f4f8;gap:10px;}
@@ -130,12 +135,29 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .lineup-name{flex:1;font-size:15px;font-weight:600;}
 .lineup-pos{font-size:12px;font-weight:700;background:var(--blue-light);color:var(--blue);padding:3px 8px;border-radius:10px;}
 
+/* LIVE GAME PLAYER CARDS */
+.live-player-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.live-player-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;cursor:pointer;transition:transform .1s,border-color .1s;border:2px solid transparent;text-align:center;}
+.live-player-card:active{transform:scale(.97);}
+.live-player-card:hover{border-color:var(--blue);}
+.lpc-num{font-size:11px;color:var(--text-light);margin-bottom:4px;}
+.lpc-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px;}
+.lpc-stats{font-size:13px;color:var(--text-light);}
+.lpc-avg{font-size:16px;font-weight:800;color:var(--blue);}
+.lpc-order{font-size:11px;font-weight:700;background:var(--blue);color:white;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
+
 /* ROSTER */
 .roster-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f4f8;gap:10px;}
 .roster-row:last-child{border-bottom:none;}
 .roster-num{font-size:12px;font-weight:700;background:var(--blue-light);color:var(--blue);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .roster-name{flex:1;font-size:15px;font-weight:600;}
 .roster-pin{font-size:12px;color:var(--text-light);letter-spacing:3px;}
+
+/* PLAYER CHECKLIST (for live game start) */
+.player-check-row{background:white;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;user-select:none;}
+.player-check-row.checked{border-color:var(--blue);background:var(--blue-light);}
+.check-box{width:24px;height:24px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#e0e0e0;font-size:14px;transition:background .15s;}
+.player-check-row.checked .check-box{background:var(--green);color:white;}
 
 /* FORM */
 .form-group{margin-bottom:14px;}
@@ -147,11 +169,38 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .form-row{display:flex;gap:10px;}
 .form-row .form-group{flex:1;}
 
+/* CSV UPLOAD */
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:white;position:relative;margin-bottom:10px;}
+.drop-zone:hover{border-color:var(--blue);background:var(--blue-light);}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-zone-icon{font-size:28px;margin-bottom:6px;}
+.drop-zone-text{font-size:14px;font-weight:700;color:var(--text);}
+.drop-zone-sub{font-size:12px;color:var(--text-light);margin-top:4px;}
+.fmt-hint{background:var(--gold-light);border:1px solid #ffe082;border-radius:10px;padding:10px 14px;font-size:12px;color:#795548;margin-top:8px;line-height:1.7;}
+.fmt-hint code{background:#fff3cd;padding:1px 5px;border-radius:4px;font-family:monospace;font-size:11px;}
+
+/* LINEUP EDITOR */
+.lineup-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.lineup-edit-num{font-size:14px;font-weight:800;color:var(--blue);width:24px;flex-shrink:0;text-align:center;}
+.lineup-edit-sel{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:white;color:var(--text);outline:none;}
+.lineup-edit-sel:focus{border-color:var(--blue);}
+.lineup-edit-pos{width:90px;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-size:13px;background:white;color:var(--text);outline:none;}
+
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:flex-end;justify-content:center;}
 .modal-overlay.open{display:flex;}
-.modal{background:white;border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:24px 20px 36px;max-height:85vh;overflow-y:auto;}
+.modal{background:white;border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:24px 20px 36px;max-height:88vh;overflow-y:auto;}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:18px;}
+
+/* SCOREBOOK */
+.scorebook-wrap{overflow-x:auto;}
+.scorebook{border-collapse:collapse;font-size:12px;min-width:700px;width:100%;}
+.scorebook th{background:var(--blue);color:white;padding:6px 8px;text-align:center;font-size:11px;white-space:nowrap;}
+.scorebook th:first-child{text-align:left;min-width:110px;}
+.scorebook td{padding:6px 8px;text-align:center;border:1px solid var(--border);font-size:12px;}
+.scorebook td:first-child{text-align:left;font-weight:700;color:var(--blue);border-left:none;}
+.scorebook .inn-cell{font-weight:700;min-width:36px;}
+.scorebook tfoot td{background:#f0f4f8;font-weight:700;}
 
 /* LOADING */
 #screen-loading{background:var(--bg);align-items:center;justify-content:center;gap:16px;}
@@ -168,31 +217,18 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .empty-msg{font-size:15px;font-weight:600;}
 .empty-sub{font-size:13px;margin-top:6px;}
 
-/* ADMIN LINEUP EDITOR */
-.lineup-edit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.lineup-edit-num{font-size:14px;font-weight:800;color:var(--blue);width:24px;flex-shrink:0;text-align:center;}
-.lineup-edit-sel{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:white;color:var(--text);outline:none;}
-.lineup-edit-sel:focus{border-color:var(--blue);}
-.lineup-edit-pos{width:90px;border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;font-size:13px;background:white;color:var(--text);outline:none;}
-
-/* SCHEDULE ROW */
-.sched-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f4f8;gap:10px;cursor:pointer;transition:background .1s;}
-.sched-row:last-child{border-bottom:none;}
-.sched-row:active{background:#f5f7f9;}
-.sched-date-col{font-size:13px;color:var(--text-light);width:68px;flex-shrink:0;}
-.sched-opp{flex:1;font-size:14px;font-weight:600;}
-.sched-score{font-size:13px;font-weight:700;}
-
 /* DARK MODE */
-body.dark{--bg:#0f1923;--text:#e8f0fe;--text-light:#8fa3c0;--border:#2a3a50;--shadow:0 2px 12px rgba(0,0,0,.4);--white:#1a2535;--blue-light:#1a3050;}
-body.dark .card,body.dark .section-card,body.dark .game-card,body.dark .modal,body.dark .pin-key,body.dark .bottom-nav,body.dark .ab-btn{background:#1a2535;}
+body.dark{--bg:#0f1923;--text:#e8f0fe;--text-light:#8fa3c0;--border:#2a3a50;--shadow:0 2px 12px rgba(0,0,0,.4);--blue-light:#1a3050;}
+body.dark .card,body.dark .section-card,body.dark .modal,body.dark .pin-key,body.dark .bottom-nav,body.dark .ab-btn,body.dark .live-player-card,body.dark .drop-zone{background:#1a2535;}
 body.dark .form-input,body.dark .form-select,body.dark .lineup-edit-sel,body.dark .lineup-edit-pos{background:#1a2535;color:#e8f0fe;border-color:#2a3a50;}
-body.dark .stats-table td{border-color:#1e2f45;}
+body.dark .stats-table td,body.dark .scorebook td{border-color:#1e2f45;}
 body.dark .btn-outline{background:#1e2f45;color:#e8f0fe;border-color:#2a3a50;}
 body.dark .bottom-nav{background:#1a2535;border-color:#2a3a50;}
-body.dark .game-card-body{background:#1a2535;}
 body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1e2f45;}
-@media(max-width:480px){.content-inner{padding:14px 10px 90px;}.ab-grid{grid-template-columns:repeat(3,1fr);gap:8px;}.ab-btn{padding:14px 4px;font-size:14px;}}
+body.dark .player-check-row{background:#1a2535;border-color:#2a3a50;}
+body.dark .player-check-row.checked{background:#1a3050;}
+body.dark .scorebook tfoot td{background:#151f2e;}
+@media(max-width:480px){.content-inner{padding:14px 10px 90px;}.ab-btn{padding:14px 4px;font-size:14px;}.live-player-grid{grid-template-columns:1fr 1fr;}}
 </style>
 </head>
 <body>
@@ -211,10 +247,8 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
     <div class="pin-title" id="pin-team-name">MinuteMen</div>
     <div class="pin-sub" id="pin-season-sub">Enter your PIN</div>
     <div class="pin-dots">
-      <div class="pin-dot" id="pd0"></div>
-      <div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div>
-      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
     </div>
     <div class="pin-keypad">
       <button class="pin-key" onclick="pinKey('1')">1</button>
@@ -242,21 +276,17 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
       <div class="nav-sub" id="home-player-name"></div>
     </div>
     <div class="nav-right">
-      <button style="background:none;border:none;color:white;font-size:22px;cursor:pointer;" onclick="toggleDark()" title="Toggle dark mode">🌙</button>
+      <button style="background:none;border:none;color:white;font-size:22px;cursor:pointer;" onclick="toggleDark()">🌙</button>
       <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;" onclick="logout()">Sign out</button>
     </div>
   </div>
   <div class="content" id="home-content">
     <div id="tab-home" class="content-inner"></div>
-    <div id="tab-schedule" class="content-inner" style="display:none;"></div>
     <div id="tab-stats" class="content-inner" style="display:none;"></div>
   </div>
   <div class="bottom-nav">
     <button class="active" onclick="switchTab('home',this)" id="btn-tab-home">
       <span class="bnav-icon">🏠</span>Home
-    </button>
-    <button onclick="switchTab('schedule',this)" id="btn-tab-schedule">
-      <span class="bnav-icon">📅</span>Schedule
     </button>
     <button onclick="switchTab('stats',this)" id="btn-tab-stats">
       <span class="bnav-icon">📊</span>Stats
@@ -264,25 +294,27 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
   </div>
 </div>
 
-<!-- GAME DETAIL -->
-<div class="screen" id="screen-game">
-  <div class="top-nav">
-    <button class="back-btn" onclick="showScreen('screen-home')">←</button>
+<!-- LIVE GAME (Player view) -->
+<div class="screen" id="screen-live">
+  <div class="top-nav" style="background:var(--live);">
+    <button class="back-btn" onclick="showScreen('screen-home');renderHomeTab();">←</button>
     <div>
-      <div class="nav-title" id="gd-title">Game Detail</div>
-      <div class="nav-sub" id="gd-sub"></div>
+      <div class="nav-title" id="live-title">Live Game</div>
+      <div class="nav-sub" id="live-sub"></div>
     </div>
-    <div class="nav-right" id="gd-log-btn-wrap"></div>
+    <div class="nav-right">
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;" onclick="refreshLive()">↻ Refresh</button>
+    </div>
   </div>
   <div class="content">
-    <div class="content-inner" id="game-detail-content"></div>
+    <div class="content-inner" id="live-content"></div>
   </div>
 </div>
 
-<!-- LOG AT-BAT -->
+<!-- LOG AT-BAT (live game, for any player) -->
 <div class="screen" id="screen-log-ab">
-  <div class="top-nav">
-    <button class="back-btn" id="log-ab-back">←</button>
+  <div class="top-nav" style="background:var(--live);">
+    <button class="back-btn" onclick="showScreen('screen-live');renderLiveGame();">←</button>
     <div>
       <div class="nav-title" id="log-ab-player-name">Log At-Bat</div>
       <div class="nav-sub" id="log-ab-game-name"></div>
@@ -293,36 +325,18 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
       <div class="card">
         <div class="card-label">Result</div>
         <div class="ab-grid">
-          <button class="ab-btn ab-1b" onclick="selectResult('single')">
-            1B<div class="ab-result-label">Single</div>
-          </button>
-          <button class="ab-btn ab-2b" onclick="selectResult('double')">
-            2B<div class="ab-result-label">Double</div>
-          </button>
-          <button class="ab-btn ab-3b" onclick="selectResult('triple')">
-            3B<div class="ab-result-label">Triple</div>
-          </button>
-          <button class="ab-btn ab-hr" onclick="selectResult('hr')">
-            HR<div class="ab-result-label">Home Run</div>
-          </button>
-          <button class="ab-btn ab-bb" onclick="selectResult('bb')">
-            BB<div class="ab-result-label">Walk</div>
-          </button>
-          <button class="ab-btn ab-k" onclick="selectResult('k')">
-            K<div class="ab-result-label">Strikeout</div>
-          </button>
-          <button class="ab-btn ab-sf" onclick="selectResult('sf')">
-            SF<div class="ab-result-label">Sac Fly</div>
-          </button>
-          <button class="ab-btn ab-fc" onclick="selectResult('fc')">
-            FC<div class="ab-result-label">Fielder's Choice</div>
-          </button>
-          <button class="ab-btn ab-out" onclick="selectResult('out')">
-            OUT<div class="ab-result-label">Out</div>
-          </button>
+          <button class="ab-btn ab-1b" onclick="selectResult('single')">1B<div class="ab-result-label">Single</div></button>
+          <button class="ab-btn ab-2b" onclick="selectResult('double')">2B<div class="ab-result-label">Double</div></button>
+          <button class="ab-btn ab-3b" onclick="selectResult('triple')">3B<div class="ab-result-label">Triple</div></button>
+          <button class="ab-btn ab-hr" onclick="selectResult('hr')">HR<div class="ab-result-label">Home Run</div></button>
+          <button class="ab-btn ab-bb" onclick="selectResult('bb')">BB<div class="ab-result-label">Walk</div></button>
+          <button class="ab-btn ab-k" onclick="selectResult('k')">K<div class="ab-result-label">Strikeout</div></button>
+          <button class="ab-btn ab-sf" onclick="selectResult('sf')">SF<div class="ab-result-label">Sac Fly</div></button>
+          <button class="ab-btn ab-fc" onclick="selectResult('fc')">FC<div class="ab-result-label">Fielder's Choice</div></button>
+          <button class="ab-btn ab-out" onclick="selectResult('out')">OUT<div class="ab-result-label">Out</div></button>
         </div>
       </div>
-      <div class="card" id="rbi-card">
+      <div class="card">
         <div class="card-label">RBI</div>
         <div class="rbi-counter">
           <button class="rbi-btn rbi-minus" onclick="adjustRbi(-1)">−</button>
@@ -334,20 +348,29 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
         <div class="card-label">Inning (optional)</div>
         <select class="form-select" id="ab-inning">
           <option value="">—</option>
-          <option value="1">1st</option>
-          <option value="2">2nd</option>
-          <option value="3">3rd</option>
-          <option value="4">4th</option>
-          <option value="5">5th</option>
-          <option value="6">6th</option>
-          <option value="7">7th</option>
-          <option value="8">8th</option>
-          <option value="9">9th</option>
+          <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
+          <option value="4">4th</option><option value="5">5th</option><option value="6">6th</option>
+          <option value="7">7th</option><option value="8">8th</option><option value="9">9th</option>
         </select>
       </div>
       <div id="log-ab-error" style="color:var(--red);font-size:13px;margin-bottom:10px;"></div>
-      <button class="btn btn-green" onclick="saveAtBat()">Save At-Bat</button>
+      <button class="btn btn-live" onclick="saveAtBat()">⚾ Save At-Bat</button>
     </div>
+  </div>
+</div>
+
+<!-- GAME DETAIL -->
+<div class="screen" id="screen-game">
+  <div class="top-nav">
+    <button class="back-btn" id="gd-back-btn">←</button>
+    <div>
+      <div class="nav-title" id="gd-title">Game Detail</div>
+      <div class="nav-sub" id="gd-sub"></div>
+    </div>
+    <div class="nav-right" id="gd-actions"></div>
+  </div>
+  <div class="content">
+    <div class="content-inner" id="game-detail-content"></div>
   </div>
 </div>
 
@@ -364,25 +387,17 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
       <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;" onclick="logout()">Sign out</button>
     </div>
   </div>
-  <div class="content" id="admin-content">
-    <div id="atab-roster" class="content-inner"></div>
-    <div id="atab-games" class="content-inner" style="display:none;"></div>
-    <div id="atab-lineup" class="content-inner" style="display:none;"></div>
+  <div class="content">
+    <div id="atab-roster"   class="content-inner"></div>
+    <div id="atab-schedule" class="content-inner" style="display:none;"></div>
+    <div id="atab-lineup"   class="content-inner" style="display:none;"></div>
     <div id="atab-settings" class="content-inner" style="display:none;"></div>
   </div>
   <div class="bottom-nav">
-    <button class="active" onclick="switchAdminTab('roster',this)">
-      <span class="bnav-icon">👥</span>Roster
-    </button>
-    <button onclick="switchAdminTab('games',this)">
-      <span class="bnav-icon">📅</span>Games
-    </button>
-    <button onclick="switchAdminTab('lineup',this)">
-      <span class="bnav-icon">📋</span>Lineup
-    </button>
-    <button onclick="switchAdminTab('settings',this)">
-      <span class="bnav-icon">⚙️</span>Settings
-    </button>
+    <button class="active" onclick="switchAdminTab('roster',this)"><span class="bnav-icon">👥</span>Roster</button>
+    <button onclick="switchAdminTab('schedule',this)"><span class="bnav-icon">📅</span>Schedule</button>
+    <button onclick="switchAdminTab('lineup',this)"><span class="bnav-icon">📋</span>Lineup</button>
+    <button onclick="switchAdminTab('settings',this)"><span class="bnav-icon">⚙️</span>Settings</button>
   </div>
 </div>
 
@@ -408,6 +423,44 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
     <button class="btn btn-primary" onclick="savePlayer()">Save Player</button>
     <button class="btn btn-outline" onclick="closeModal('modal-player')">Cancel</button>
     <button class="btn btn-red" id="del-player-btn" style="display:none;margin-top:8px;" onclick="deletePlayer()">Remove Player</button>
+  </div>
+</div>
+
+<!-- MODAL: Roster Upload -->
+<div class="modal-overlay" id="modal-roster-upload">
+  <div class="modal">
+    <div class="modal-title">Upload Roster CSV</div>
+    <div class="drop-zone" id="roster-drop">
+      <input type="file" accept=".csv,text/csv" onchange="handleRosterFile(this)">
+      <div class="drop-zone-icon">📄</div>
+      <div class="drop-zone-text">Tap to select CSV file</div>
+      <div class="drop-zone-sub">or drag and drop</div>
+    </div>
+    <div class="fmt-hint"><strong>Required columns (header row):</strong><br>
+      <code>Name</code>, <code>Number</code>, <code>PIN</code><br>
+      Example: <code>John Smith,7,1234</code>
+    </div>
+    <div id="roster-preview" style="margin-top:12px;"></div>
+    <button class="btn btn-outline" onclick="closeModal('modal-roster-upload')">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: Schedule Upload -->
+<div class="modal-overlay" id="modal-schedule-upload">
+  <div class="modal">
+    <div class="modal-title">Upload Schedule CSV</div>
+    <div class="drop-zone" id="schedule-drop">
+      <input type="file" accept=".csv,text/csv" onchange="handleScheduleFile(this)">
+      <div class="drop-zone-icon">📄</div>
+      <div class="drop-zone-text">Tap to select CSV file</div>
+      <div class="drop-zone-sub">or drag and drop</div>
+    </div>
+    <div class="fmt-hint"><strong>Required columns (header row):</strong><br>
+      <code>Date</code> (YYYY-MM-DD), <code>Opponent</code>, <code>HomeAway</code>, <code>Location</code><br>
+      Example: <code>2026-05-01,Tigers,home,Central Park</code>
+    </div>
+    <div id="schedule-preview" style="margin-top:12px;"></div>
+    <button class="btn btn-outline" onclick="closeModal('modal-schedule-upload')">Cancel</button>
   </div>
 </div>
 
@@ -437,6 +490,14 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
       <label class="form-label">Location (optional)</label>
       <input class="form-input" id="game-loc-inp" placeholder="Field name" autocomplete="off">
     </div>
+    <div class="form-group" id="status-row" style="display:none;">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="game-status-inp">
+        <option value="scheduled">Scheduled</option>
+        <option value="final">Final</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
     <div class="form-row" id="score-row" style="display:none;">
       <div class="form-group">
         <label class="form-label">Our Score</label>
@@ -447,14 +508,6 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
         <input class="form-input" id="game-opp-score-inp" type="number" min="0" placeholder="0" style="text-align:center;">
       </div>
     </div>
-    <div class="form-group" id="status-row" style="display:none;">
-      <label class="form-label">Status</label>
-      <select class="form-select" id="game-status-inp">
-        <option value="scheduled">Scheduled</option>
-        <option value="final">Final</option>
-        <option value="cancelled">Cancelled</option>
-      </select>
-    </div>
     <div class="form-group">
       <label class="form-label">Notes (optional)</label>
       <input class="form-input" id="game-notes-inp" placeholder="Notes…" autocomplete="off">
@@ -462,6 +515,45 @@ body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1
     <button class="btn btn-primary" onclick="saveGame()">Save Game</button>
     <button class="btn btn-outline" onclick="closeModal('modal-game')">Cancel</button>
     <button class="btn btn-red" id="del-game-btn" style="display:none;margin-top:8px;" onclick="deleteGame()">Delete Game</button>
+  </div>
+</div>
+
+<!-- MODAL: Start Live Game (player selection) -->
+<div class="modal-overlay" id="modal-start-live">
+  <div class="modal">
+    <div class="modal-title" id="start-live-title">Start Live Game</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Select who is playing today:</div>
+    <div id="start-live-players"></div>
+    <div style="margin-top:4px;margin-bottom:14px;">
+      <button style="background:none;border:none;color:var(--blue);font-size:13px;cursor:pointer;font-weight:600;" onclick="selectAllPlayers(true)">Select All</button>
+      &nbsp;·&nbsp;
+      <button style="background:none;border:none;color:var(--text-light);font-size:13px;cursor:pointer;" onclick="selectAllPlayers(false)">Clear All</button>
+    </div>
+    <button class="btn btn-live" onclick="confirmStartLive()">🔴 Start Game</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-start-live')">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: End Game (enter score) -->
+<div class="modal-overlay" id="modal-end-game">
+  <div class="modal">
+    <div class="modal-title">End Game</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Our Score</label>
+        <input class="form-input" id="end-our-score" type="number" min="0" placeholder="0" style="text-align:center;font-size:24px;font-weight:800;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Their Score</label>
+        <input class="form-input" id="end-opp-score" type="number" min="0" placeholder="0" style="text-align:center;font-size:24px;font-weight:800;">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input class="form-input" id="end-notes" placeholder="Notes…" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" onclick="confirmEndGame()">Save Final Score</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-end-game')">Cancel</button>
   </div>
 </div>
 
@@ -492,16 +584,16 @@ const SUPABASE_ANON_KEY = '%%SUPABASE_ANON_KEY%%';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── State ────────────────────────────────────────────────────────
-let currentPlayer = null;
-let isAdmin = false;
-let players = [], games = [], lineups = [], atBats = [], config = {};
+let currentPlayer = null, isAdmin = false;
+let players = [], games = [], lineups = [], atBats = [], config = {}, gamePlayers = [];
 let pinBuffer = '';
-let logAbGameId = null, selectedResult = null, rbiCount = 0;
-let currentGameId = null;
+let logAbPlayerId = null, logAbGameId = null, selectedResult = null, rbiCount = 0;
+let currentGameId = null, startLiveGameId = null, endLiveGameId = null;
 
-const POSITIONS = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF','EH','DH'];
-const AB_RESULTS = ['single','double','triple','hr','k','fc','out'];
-const H_RESULTS  = ['single','double','triple','hr'];
+const POSITIONS   = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF','EH','DH'];
+const AB_RESULTS  = ['single','double','triple','hr','k','fc','out'];
+const RESULT_CODE = {single:'1B',double:'2B',triple:'3B',hr:'HR',bb:'BB',k:'K',sf:'SF',fc:'FC',out:'O'};
+const RESULT_FULL = {single:'Single',double:'Double',triple:'Triple',hr:'Home Run',bb:'Walk',k:'Strikeout',sf:'Sac Fly',fc:"Fielder's Choice",out:'Out'};
 
 // ── Init ─────────────────────────────────────────────────────────
 async function init() {
@@ -513,45 +605,48 @@ async function init() {
 }
 
 async function loadData() {
-  const [cfgRes, plrRes, gmsRes, lupRes, absRes] = await Promise.all([
+  const [cfgR, plrR, gmsR, lupR, absR, gpR] = await Promise.all([
     sb.from('sb_config').select('*'),
     sb.from('sb_players').select('*').order('name'),
     sb.from('sb_games').select('*').order('game_date'),
     sb.from('sb_lineups').select('*').order('batting_order'),
-    sb.from('sb_at_bats').select('*')
+    sb.from('sb_at_bats').select('*'),
+    sb.from('sb_game_players').select('*')
   ]);
-  config   = Object.fromEntries((cfgRes.data || []).map(r => [r.key, r.value]));
-  players  = plrRes.data  || [];
-  games    = gmsRes.data  || [];
-  lineups  = lupRes.data  || [];
-  atBats   = absRes.data  || [];
+  config      = Object.fromEntries((cfgR.data || []).map(r => [r.key, r.value]));
+  players     = plrR.data || [];
+  games       = gmsR.data || [];
+  lineups     = lupR.data || [];
+  atBats      = absR.data || [];
+  gamePlayers = gpR.data  || [];
 }
 
-// ── Screens ──────────────────────────────────────────────────────
+function liveGame() { return games.find(g => g.status === 'live') || null; }
+
+// ── Navigation ───────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
 function switchTab(tab, btn) {
-  ['home','schedule','stats'].forEach(t => {
+  ['home','stats'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
-    document.getElementById('btn-tab-' + t).classList.toggle('active', t === tab);
   });
-  if (tab === 'home')     renderHomeTab();
-  if (tab === 'schedule') renderScheduleTab();
-  if (tab === 'stats')    renderStatsTab();
+  document.querySelectorAll('#screen-home .bottom-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (tab === 'home')  renderHomeTab();
+  if (tab === 'stats') renderStatsTab();
 }
 
 function switchAdminTab(tab, btn) {
-  ['roster','games','lineup','settings'].forEach(t => {
+  ['roster','schedule','lineup','settings'].forEach(t => {
     document.getElementById('atab-' + t).style.display = t === tab ? '' : 'none';
   });
-  document.querySelectorAll('#screen-admin .bottom-nav button').forEach((b,i) => {
-    b.classList.toggle('active', b === btn);
-  });
+  document.querySelectorAll('#screen-admin .bottom-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
   if (tab === 'roster')   renderAdminRoster();
-  if (tab === 'games')    renderAdminGames();
+  if (tab === 'schedule') renderAdminSchedule();
   if (tab === 'lineup')   renderAdminLineup();
   if (tab === 'settings') renderAdminSettings();
 }
@@ -574,27 +669,22 @@ function pinKey(d) {
   updatePinDots();
   if (pinBuffer.length === 4) setTimeout(checkPin, 120);
 }
-
 function pinBack() {
   pinBuffer = pinBuffer.slice(0, -1);
   updatePinDots();
   document.getElementById('pin-error').textContent = '';
 }
-
 function updatePinDots() {
   for (let i = 0; i < 4; i++)
     document.getElementById('pd' + i).classList.toggle('filled', i < pinBuffer.length);
 }
-
 function checkPin() {
-  const adminPin = config.admin_pin || '0000';
-  if (pinBuffer === adminPin) {
+  if (pinBuffer === (config.admin_pin || '0000')) {
     isAdmin = true; currentPlayer = null;
     document.getElementById('admin-team-name').textContent = config.team_name || 'MinuteMen';
     showScreen('screen-admin');
-    renderAdminRoster();
-    pinBuffer = ''; updatePinDots();
-    return;
+    switchAdminTab('roster', document.querySelector('#screen-admin .bottom-nav button'));
+    pinBuffer = ''; updatePinDots(); return;
   }
   const player = players.filter(p => p.active).find(p => p.pin === pinBuffer);
   if (player) {
@@ -603,8 +693,7 @@ function checkPin() {
     document.getElementById('home-player-name').textContent = player.name + (player.number ? '  #' + player.number : '');
     showScreen('screen-home');
     switchTab('home', document.getElementById('btn-tab-home'));
-    pinBuffer = ''; updatePinDots();
-    return;
+    pinBuffer = ''; updatePinDots(); return;
   }
   document.getElementById('pin-error').textContent = 'Incorrect PIN — try again';
   pinBuffer = ''; updatePinDots();
@@ -622,193 +711,152 @@ function calcStats(abs) {
   const k   = abs.filter(a => a.result === 'k').length;
   const sf  = abs.filter(a => a.result === 'sf').length;
   const fc  = abs.filter(a => a.result === 'fc').length;
-  const rbi = abs.reduce((s, a) => s + (a.rbi || 0), 0);
+  const rbi = abs.reduce((s,a) => s + (a.rbi||0), 0);
   const tb  = s1 + 2*d2 + 3*t3 + 4*hr;
   const fmt = n => n.toFixed(3).replace(/^0\./, '.');
-  const avg = ab > 0 ? fmt(h / ab) : '.---';
-  const obpDen = ab + bb + sf;
-  const obp = obpDen > 0 ? fmt((h + bb + sf) / obpDen) : '.---';
-  const slg = ab > 0 ? fmt(tb / ab) : '.---';
-  const ops = (avg === '.---' || obp === '.---') ? '.---'
-    : fmt(parseFloat('0' + obp) + parseFloat('0' + slg));
+  const avg = ab > 0 ? fmt(h/ab) : '.---';
+  const obpD = ab + bb + sf;
+  const obp = obpD > 0 ? fmt((h+bb+sf)/obpD) : '.---';
+  const slg = ab > 0 ? fmt(tb/ab) : '.---';
+  const ops = obp==='.---'||slg==='.---' ? '.---' : fmt(parseFloat('0'+obp)+parseFloat('0'+slg));
   return { ab, h, s1, d2, t3, hr, bb, k, sf, fc, rbi, tb, avg, obp, slg, ops };
 }
-
 function avgClass(avg) {
-  if (avg === '.---') return '';
-  const v = parseFloat('0' + avg);
-  if (v >= 0.400) return 'avg-great';
-  if (v >= 0.300) return 'avg-good';
-  if (v >= 0.200) return 'avg-ok';
+  if (avg==='.---') return '';
+  const v = parseFloat('0'+avg);
+  if (v>=.400) return 'avg-great';
+  if (v>=.300) return 'avg-good';
+  if (v>=.200) return 'avg-ok';
   return 'avg-poor';
 }
 
 // ── Home Tab ─────────────────────────────────────────────────────
 function renderHomeTab() {
   const el = document.getElementById('tab-home');
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = games.filter(g => g.status === 'scheduled' && g.game_date >= today)
+  const today = new Date().toISOString().slice(0,10);
+  const live = liveGame();
+
+  let html = '';
+
+  // Live game banner
+  if (live) {
+    html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:14px;cursor:pointer;" onclick="enterLiveGame()">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div class="live-dot"></div>
+        <span style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;">Live Now</span>
+      </div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px;">vs ${esc(live.opponent)}</div>
+      <div style="font-size:13px;opacity:.9;margin-bottom:12px;">${fmtDate(live.game_date)} · ${live.home_away}${live.location?' · '+esc(live.location):''}</div>
+      <div style="background:rgba(255,255,255,.2);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;text-align:center;">⚾ Enter Live Game — Log Stats</div>
+    </div>`;
+  }
+
+  // Next scheduled game
+  const upcoming = games.filter(g => g.status==='scheduled' && g.game_date >= today)
                         .sort((a,b) => a.game_date.localeCompare(b.game_date));
   const nextGame = upcoming[0] || null;
-  const recent = games.filter(g => g.status === 'final')
-                      .sort((a,b) => b.game_date.localeCompare(a.game_date))[0] || null;
-
-  // Season summary for current player
-  const myAbs = atBats.filter(a => a.player_id === currentPlayer.id);
-  const myStats = calcStats(myAbs);
-
-  let html = `<div class="card" style="background:var(--blue);color:white;margin-bottom:14px;">
-    <div style="font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Season Stats</div>
-    <div style="font-size:32px;font-weight:800;margin-bottom:4px;">${myStats.avg}</div>
-    <div style="font-size:13px;opacity:.85;">${myStats.ab} AB · ${myStats.h} H · ${myStats.hr} HR · ${myStats.rbi} RBI</div>
-  </div>`;
-
   if (nextGame) {
-    const d = fmtDate(nextGame.game_date);
-    const lineupForGame = lineups.filter(l => l.game_id === nextGame.id);
-    const mySpot = lineupForGame.find(l => l.player_id === currentPlayer.id);
-    html += `<div class="section-card">
+    const lineup4Game = lineups.filter(l => l.game_id === nextGame.id);
+    const mySpot = currentPlayer ? lineup4Game.find(l => l.player_id === currentPlayer.id) : null;
+    html += `<div class="section-card" style="cursor:pointer;" onclick="openGameDetail(${nextGame.id})">
       <div class="section-header">
-        <span style="font-size:16px;">📅</span>
+        <span style="font-size:15px;">📅</span>
         <span class="sh-title">Next Game</span>
+        <span class="game-badge badge-${nextGame.home_away}" style="margin-left:auto;">${nextGame.home_away}</span>
       </div>
       <div style="padding:16px;">
         <div style="font-size:18px;font-weight:800;margin-bottom:4px;">vs ${esc(nextGame.opponent)}</div>
-        <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;">${d} · <span class="game-badge ${nextGame.home_away === 'home' ? 'badge-home' : 'badge-away'}">${nextGame.home_away}</span>${nextGame.location ? ' · ' + esc(nextGame.location) : ''}</div>
-        ${mySpot ? `<div style="font-size:14px;margin-bottom:14px;">🏏 Batting <strong>#${mySpot.batting_order}</strong>${mySpot.position ? ' · ' + mySpot.position : ''}</div>` : ''}
-        <button class="btn btn-green" onclick="openLogAb(${nextGame.id})">⚾ Log At-Bat</button>
-        <button class="btn btn-outline" onclick="openGameDetail(${nextGame.id})">View Lineup & Stats</button>
-      </div>
-    </div>`;
-  } else {
-    html += `<div class="section-card"><div class="section-header"><span class="sh-title">Next Game</span></div>
-      <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No upcoming games</div></div></div>`;
-  }
-
-  if (recent) {
-    const won = recent.our_score > recent.opp_score;
-    const lost = recent.our_score < recent.opp_score;
-    html += `<div class="section-card" style="cursor:pointer;" onclick="openGameDetail(${recent.id})">
-      <div class="section-header"><span style="font-size:16px;">${won ? '🏆' : '⚾'}</span><span class="sh-title">Last Game</span></div>
-      <div style="padding:16px;">
-        <div style="font-size:16px;font-weight:800;margin-bottom:4px;">vs ${esc(recent.opponent)}</div>
-        <div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">${fmtDate(recent.game_date)}</div>
-        <div class="game-score">
-          <span class="${won ? 'win-score' : lost ? 'loss-score' : ''}">${recent.our_score ?? '—'}</span>
-          <span class="score-sep">–</span>
-          <span class="${lost ? 'win-score' : won ? 'loss-score' : ''}">${recent.opp_score ?? '—'}</span>
-        </div>
+        <div style="font-size:13px;color:var(--text-light);margin-bottom:${mySpot?'10':'14'}px;">${fmtDate(nextGame.game_date)}${nextGame.location?' · '+esc(nextGame.location):''}</div>
+        ${mySpot?`<div style="font-size:14px;font-weight:600;margin-bottom:12px;">🏏 Batting <strong>#${mySpot.batting_order}</strong>${mySpot.position?' · '+mySpot.position:''}</div>`:''}
+        <div style="font-size:13px;color:var(--text-light);">Tap for lineup & details →</div>
       </div>
     </div>`;
   }
 
-  // Log AB for any recent game (last 7 days)
-  const recentGames = games.filter(g => g.status === 'final' && daysDiff(g.game_date) <= 7);
-  if (recentGames.length > 0 && nextGame) {
-    html += `<div style="margin-top:8px;"><div class="card-label" style="margin-bottom:8px;">Log stats for a recent game</div>`;
-    recentGames.forEach(g => {
-      html += `<button class="btn btn-outline" style="margin-bottom:8px;" onclick="openLogAb(${g.id})">⚾ ${fmtDate(g.game_date)} vs ${esc(g.opponent)}</button>`;
+  // Full schedule
+  const sorted = [...games].filter(g=>g.status!=='cancelled'||true)
+                           .sort((a,b)=>a.game_date.localeCompare(b.game_date));
+  if (sorted.length) {
+    html += `<div class="section-card"><div class="section-header"><span class="sh-title">Full Schedule</span></div>`;
+    sorted.forEach(g => {
+      let right = '';
+      if (g.status==='live') right = `<span class="game-badge badge-live">● LIVE</span>`;
+      else if (g.status==='final') {
+        const w=g.our_score>g.opp_score, l=g.our_score<g.opp_score;
+        right = `<span class="sched-score ${w?'win-score':l?'loss-score':''}">${g.our_score}–${g.opp_score}</span>`;
+      } else if (g.status==='cancelled') right = `<span class="game-badge badge-cancelled">Cancelled</span>`;
+      else right = `<span class="game-badge badge-${g.home_away}">${g.home_away}</span>`;
+      const startBtn = g.status === 'scheduled' && !liveGame()
+        ? `<button class="btn btn-sm btn-live" style="flex-shrink:0;margin-left:6px;" onclick="event.stopPropagation();openStartLiveModal(${g.id})">▶ Start</button>`
+        : '';
+      html += `<div class="sched-row" onclick="openGameDetail(${g.id})">
+        <div class="sched-date-col">${fmtDateShort(g.game_date)}</div>
+        <div class="sched-opp">vs ${esc(g.opponent)}</div>
+        ${right}${startBtn}
+      </div>`;
     });
     html += '</div>';
-  } else if (recentGames.length > 0 && !nextGame) {
-    html += `<button class="btn btn-green" onclick="openLogAb(${recentGames[0].id})">⚾ Log At-Bat – ${fmtDate(recentGames[0].game_date)} vs ${esc(recentGames[0].opponent)}</button>`;
+  } else {
+    html += '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No games scheduled yet</div></div>';
   }
-
-  el.innerHTML = html;
-}
-
-// ── Schedule Tab ─────────────────────────────────────────────────
-function renderScheduleTab() {
-  const el = document.getElementById('tab-schedule');
-  if (!games.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No games scheduled yet</div></div>';
-    return;
-  }
-  const sorted = [...games].sort((a,b) => a.game_date.localeCompare(b.game_date));
-  let html = '<div class="section-card"><div class="section-header"><span class="sh-title">Schedule</span></div>';
-  sorted.forEach(g => {
-    const scoreHtml = g.status === 'final'
-      ? `<span class="sched-score ${g.our_score > g.opp_score ? 'win-score' : g.our_score < g.opp_score ? 'loss-score' : ''}">${g.our_score}–${g.opp_score}</span>`
-      : `<span class="game-badge ${g.status === 'cancelled' ? 'badge-cancelled' : 'badge-' + g.home_away}">${g.status === 'cancelled' ? 'Cancelled' : g.home_away}</span>`;
-    html += `<div class="sched-row" onclick="openGameDetail(${g.id})">
-      <div class="sched-date-col">${fmtDateShort(g.game_date)}</div>
-      <div class="sched-opp">vs ${esc(g.opponent)}</div>
-      ${scoreHtml}
-    </div>`;
-  });
-  html += '</div>';
   el.innerHTML = html;
 }
 
 // ── Stats Tab ────────────────────────────────────────────────────
 function renderStatsTab() {
   const el = document.getElementById('tab-stats');
-  const activePlayers = players.filter(p => p.active);
-  if (!activePlayers.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-msg">No players yet</div></div>';
-    return;
+  const active = players.filter(p=>p.active);
+  if (!active.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-msg">No players yet</div></div>'; return;
   }
-
-  const rows = activePlayers.map(p => {
-    const pAbs = atBats.filter(a => a.player_id === p.id);
-    return { p, stats: calcStats(pAbs) };
-  }).sort((a,b) => {
-    const va = parseFloat('0' + a.stats.avg) || 0;
-    const vb = parseFloat('0' + b.stats.avg) || 0;
-    return vb - va;
-  });
-
-  let html = `<div class="card-label" style="margin-bottom:8px;">Season · ${config.season || ''}</div>
+  const rows = active.map(p => ({ p, stats: calcStats(atBats.filter(a=>a.player_id===p.id)) }))
+                     .sort((a,b) => (parseFloat('0'+b.stats.avg)||0)-(parseFloat('0'+a.stats.avg)||0));
+  let html = `<div class="card-label" style="margin-bottom:8px;">Season ${config.season||''} · Batting</div>
   <div class="section-card"><div class="stats-table-wrap"><table class="stats-table">
-  <thead><tr>
-    <th>Player</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>AVG</th><th>OBP</th><th>SLG</th>
-  </tr></thead><tbody>`;
-
-  rows.forEach(({ p, stats }) => {
-    const isMe = currentPlayer && p.id === currentPlayer.id;
-    html += `<tr class="${isMe ? 'my-row' : ''}">
-      <td>${esc(p.name)}${p.number ? ' <span style="font-size:11px;color:var(--text-light);">#'+p.number+'</span>' : ''}</td>
+  <thead><tr><th>Player</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>AVG</th><th>OBP</th><th>SLG</th></tr></thead><tbody>`;
+  rows.forEach(({p,stats}) => {
+    const me = currentPlayer && p.id===currentPlayer.id;
+    html += `<tr class="${me?'my-row':''}">
+      <td>${esc(p.name)}${p.number?` <span style="font-size:11px;color:var(--text-light);">#${p.number}</span>`:''}</td>
       <td>${stats.ab}</td><td>${stats.h}</td><td>${stats.hr}</td><td>${stats.rbi}</td>
       <td>${stats.bb}</td><td>${stats.k}</td>
-      <td class="${avgClass(stats.avg)}">${stats.avg}</td>
-      <td>${stats.obp}</td><td>${stats.slg}</td>
+      <td class="${avgClass(stats.avg)}">${stats.avg}</td><td>${stats.obp}</td><td>${stats.slg}</td>
     </tr>`;
   });
-
   html += '</tbody></table></div></div>';
-
-  // Detail table: hit breakdown
   html += `<div class="section-card" style="margin-top:14px;"><div class="section-header"><span class="sh-title">Hit Breakdown</span></div>
   <div class="stats-table-wrap"><table class="stats-table">
   <thead><tr><th>Player</th><th>1B</th><th>2B</th><th>3B</th><th>HR</th><th>SF</th><th>FC</th><th>TB</th><th>OPS</th></tr></thead><tbody>`;
-  rows.forEach(({ p, stats }) => {
-    const isMe = currentPlayer && p.id === currentPlayer.id;
-    html += `<tr class="${isMe ? 'my-row' : ''}">
-      <td>${esc(p.name)}</td>
+  rows.forEach(({p,stats}) => {
+    const me = currentPlayer && p.id===currentPlayer.id;
+    html += `<tr class="${me?'my-row':''}"><td>${esc(p.name)}</td>
       <td>${stats.s1}</td><td>${stats.d2}</td><td>${stats.t3}</td><td>${stats.hr}</td>
-      <td>${stats.sf}</td><td>${stats.fc}</td><td>${stats.tb}</td><td>${stats.ops}</td>
-    </tr>`;
+      <td>${stats.sf}</td><td>${stats.fc}</td><td>${stats.tb}</td><td>${stats.ops}</td></tr>`;
   });
   html += '</tbody></table></div></div>';
-
   el.innerHTML = html;
 }
 
 // ── Game Detail ──────────────────────────────────────────────────
-function openGameDetail(gameId) {
+function openGameDetail(gameId, fromScreen) {
   currentGameId = gameId;
-  const g = games.find(x => x.id === gameId);
+  const g = games.find(x=>x.id===gameId);
   if (!g) return;
   document.getElementById('gd-title').textContent = 'vs ' + g.opponent;
   document.getElementById('gd-sub').textContent = fmtDate(g.game_date) + ' · ' + g.home_away;
+  const backBtn = document.getElementById('gd-back-btn');
+  backBtn.onclick = () => isAdmin ? showScreen('screen-admin') : showScreen('screen-home');
 
-  // Show log-ab button in nav if game is not cancelled
-  const wrap = document.getElementById('gd-log-btn-wrap');
-  if (!isAdmin && g.status !== 'cancelled') {
-    wrap.innerHTML = `<button class="btn btn-sm btn-gold" onclick="openLogAb(${g.id})">⚾ Log AB</button>`;
-  } else {
-    wrap.innerHTML = '';
+  // Actions
+  const acts = document.getElementById('gd-actions');
+  let actHtml = '';
+  if (g.status === 'final') {
+    actHtml = `<button class="btn btn-sm btn-outline" style="color:var(--blue);border-color:rgba(255,255,255,.4);" onclick="exportScorebookPrint(${g.id})">📋 Scorebook</button>`;
   }
+  if (isAdmin && g.status === 'live') {
+    actHtml += `<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;" onclick="openEndGameModal(${g.id})">End Game</button>`;
+  }
+  acts.innerHTML = actHtml;
 
   renderGameDetail(g);
   showScreen('screen-game');
@@ -816,39 +864,49 @@ function openGameDetail(gameId) {
 
 function renderGameDetail(g) {
   const el = document.getElementById('game-detail-content');
-  const gameLineup = lineups.filter(l => l.game_id === g.id)
-                            .sort((a,b) => a.batting_order - b.batting_order);
-  const gameAbs = atBats.filter(a => a.game_id === g.id);
+  const gLineup = lineups.filter(l=>l.game_id===g.id).sort((a,b)=>a.batting_order-b.batting_order);
+  const gAbs = atBats.filter(a=>a.game_id===g.id);
+  const gPlayers = gamePlayers.filter(gp=>gp.game_id===g.id).map(gp=>gp.player_id);
 
-  // Score card
   let html = `<div class="card">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-      <span class="game-badge ${g.home_away === 'home' ? 'badge-home' : 'badge-away'}">${g.home_away}</span>
-      <span class="game-badge ${g.status === 'final' ? 'badge-final' : g.status === 'cancelled' ? 'badge-cancelled' : 'badge-home'}">${g.status}</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span class="game-badge badge-${g.home_away}">${g.home_away}</span>
+      <span class="game-badge ${g.status==='final'?'badge-final':g.status==='live'?'badge-live':g.status==='cancelled'?'badge-cancelled':'badge-home'}">${g.status==='live'?'● LIVE':g.status}</span>
     </div>`;
-  if (g.status === 'final' && g.our_score != null) {
-    const won = g.our_score > g.opp_score;
-    const lost = g.our_score < g.opp_score;
-    html += `<div class="game-score">
-      <span class="${won ? 'win-score' : lost ? 'loss-score' : ''}">${g.our_score}</span>
-      <span class="score-sep">–</span>
-      <span class="${lost ? 'win-score' : won ? 'loss-score' : ''}">${g.opp_score}</span>
-    </div><div style="font-size:13px;font-weight:700;color:${won?'var(--green)':lost?'var(--red)':'var(--text-light)'};">${won?'Win':lost?'Loss':'Tie'}</div>`;
+  if (g.status==='final' && g.our_score!=null) {
+    const w=g.our_score>g.opp_score, l=g.our_score<g.opp_score;
+    html += `<div class="game-score"><span class="${w?'win-score':l?'loss-score':''}">${g.our_score}</span><span class="score-sep">–</span><span class="${l?'win-score':w?'loss-score':''}">${g.opp_score}</span></div>
+    <div style="font-size:13px;font-weight:700;color:${w?'var(--green)':l?'var(--red)':'var(--text-light)'};">${w?'Win':l?'Loss':'Tie'}</div>`;
   }
   if (g.location) html += `<div style="font-size:13px;color:var(--text-light);margin-top:8px;">📍 ${esc(g.location)}</div>`;
-  if (g.notes) html += `<div style="font-size:13px;color:var(--text-light);margin-top:4px;">${esc(g.notes)}</div>`;
+  if (g.notes)    html += `<div style="font-size:13px;color:var(--text-light);margin-top:4px;">${esc(g.notes)}</div>`;
+
+  if (g.status==='final') {
+    html += `<button class="btn btn-outline" style="margin-top:14px;" onclick="exportScorebookPrint(${g.id})">📋 Export Scorebook</button>`;
+  }
   html += '</div>';
 
-  // Lineup
-  html += `<div class="section-card"><div class="section-header"><span style="font-size:16px;">📋</span><span class="sh-title">Batting Order</span></div>`;
-  if (gameLineup.length) {
-    gameLineup.forEach(l => {
-      const p = players.find(x => x.id === l.player_id);
-      const isMe = currentPlayer && l.player_id === currentPlayer.id;
-      html += `<div class="lineup-row" ${isMe ? 'style="background:#e8f5e9;"' : ''}>
+  // Active roster (if game players set)
+  if (gPlayers.length && g.status !== 'final') {
+    html += `<div class="section-card"><div class="section-header"><span style="font-size:15px;">👥</span><span class="sh-title">Playing Today</span></div>`;
+    gPlayers.forEach(pid => {
+      const p = players.find(x=>x.id===pid);
+      if (!p) return;
+      html += `<div class="roster-row"><div class="roster-num">${p.number||'—'}</div><div class="roster-name">${esc(p.name)}</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  // Batting order
+  html += `<div class="section-card"><div class="section-header"><span style="font-size:15px;">📋</span><span class="sh-title">Batting Order</span></div>`;
+  if (gLineup.length) {
+    gLineup.forEach(l => {
+      const p = players.find(x=>x.id===l.player_id);
+      const me = currentPlayer && l.player_id===currentPlayer.id;
+      html += `<div class="lineup-row" ${me?'style="background:#e8f5e9;"':''}>
         <div class="lineup-num">${l.batting_order}</div>
-        <div class="lineup-name">${p ? esc(p.name) : '—'}${p?.number ? ' <span style="font-size:12px;color:var(--text-light);">#'+p.number+'</span>' : ''}</div>
-        ${l.position ? `<div class="lineup-pos">${esc(l.position)}</div>` : ''}
+        <div class="lineup-name">${p?esc(p.name):'—'}${p?.number?` <span style="font-size:12px;color:var(--text-light);">#${p.number}</span>`:''}</div>
+        ${l.position?`<div class="lineup-pos">${esc(l.position)}</div>`:''}
       </div>`;
     });
   } else {
@@ -856,123 +914,180 @@ function renderGameDetail(g) {
   }
   html += '</div>';
 
-  // Per-game stats
-  const playersWithAbs = players.filter(p => gameAbs.some(a => a.player_id === p.id));
-  if (playersWithAbs.length) {
-    html += `<div class="section-card"><div class="section-header"><span style="font-size:16px;">📊</span><span class="sh-title">Game Stats</span></div>
+  // Game stats
+  const withAbs = players.filter(p=>gAbs.some(a=>a.player_id===p.id));
+  if (withAbs.length) {
+    html += `<div class="section-card"><div class="section-header"><span style="font-size:15px;">📊</span><span class="sh-title">Game Stats</span></div>
     <div class="stats-table-wrap"><table class="stats-table">
-    <thead><tr><th>Player</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>AVG</th></tr></thead><tbody>`;
-    playersWithAbs.forEach(p => {
-      const pAbs = gameAbs.filter(a => a.player_id === p.id);
+    <thead><tr><th>Player</th><th>AB</th><th>H</th><th>HR</th><th>RBI</th><th>BB</th><th>K</th><th>AVG</th></tr></thead><tbody>`;
+    withAbs.forEach(p => {
+      const pAbs = gAbs.filter(a=>a.player_id===p.id);
       const st = calcStats(pAbs);
-      const isMe = currentPlayer && p.id === currentPlayer.id;
-      html += `<tr class="${isMe ? 'my-row' : ''}">
-        <td>${esc(p.name)}</td>
-        <td>${st.ab}</td><td>${st.h}</td><td>${st.hr}</td><td>${st.rbi}</td><td>${st.bb}</td>
-        <td class="${avgClass(st.avg)}">${st.avg}</td>
-      </tr>`;
+      const me = currentPlayer && p.id===currentPlayer.id;
+      html += `<tr class="${me?'my-row':''}"><td>${esc(p.name)}</td>
+        <td>${st.ab}</td><td>${st.h}</td><td>${st.hr}</td><td>${st.rbi}</td><td>${st.bb}</td><td>${st.k}</td>
+        <td class="${avgClass(st.avg)}">${st.avg}</td></tr>`;
     });
     html += '</tbody></table></div></div>';
 
-    // At-bat log for current player
-    if (currentPlayer) {
-      const myAbs = gameAbs.filter(a => a.player_id === currentPlayer.id);
-      if (myAbs.length) {
-        html += `<div class="section-card"><div class="section-header"><span class="sh-title">Your At-Bats</span></div><div style="padding:12px 16px;">`;
-        myAbs.forEach((a, i) => {
-          const resultLabel = { single:'Single',double:'Double',triple:'Triple',hr:'Home Run',bb:'Walk',k:'Strikeout',sf:'Sac Fly',fc:"Fielder's Choice",out:'Out' }[a.result] || a.result;
-          html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f4f8;">
-            <span style="font-size:13px;color:var(--text-light);width:24px;">${i+1}</span>
-            <span style="flex:1;font-size:14px;font-weight:600;">${resultLabel}</span>
-            ${a.rbi ? `<span style="font-size:12px;font-weight:700;background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;">${a.rbi} RBI</span>` : ''}
-            ${a.inning ? `<span style="font-size:12px;color:var(--text-light);">Inn ${a.inning}</span>` : ''}
-            <button style="background:#ffebee;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--red);" onclick="deleteAtBat(${a.id})">✕</button>
-          </div>`;
-        });
-        html += '</div></div>';
-      }
+    // Per-player at-bat log (admin can delete any; players only during live)
+    const live = g.status === 'live';
+    if (isAdmin || live) {
+      html += `<div class="section-card"><div class="section-header"><span class="sh-title">At-Bat Log</span></div><div style="padding:12px 16px;">`;
+      gAbs.forEach(a => {
+        const p = players.find(x=>x.id===a.player_id);
+        const canDel = isAdmin || live;
+        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f4f8;">
+          <span style="flex:1;font-size:14px;font-weight:600;">${p?esc(p.name):'?'} — ${RESULT_FULL[a.result]||a.result}</span>
+          ${a.rbi?`<span style="font-size:12px;font-weight:700;background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;">${a.rbi} RBI</span>`:''}
+          ${a.inning?`<span style="font-size:12px;color:var(--text-light);">Inn ${a.inning}</span>`:''}
+          ${canDel?`<button style="background:#ffebee;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--red);" onclick="deleteAtBat(${a.id},${g.id})">✕</button>`:''}
+        </div>`;
+      });
+      html += '</div></div>';
     }
   }
 
   el.innerHTML = html;
 }
 
+// ── Live Game (Player) ───────────────────────────────────────────
+function enterLiveGame() {
+  const live = liveGame();
+  if (!live) return;
+  document.getElementById('live-title').textContent = 'vs ' + live.opponent;
+  document.getElementById('live-sub').textContent = fmtDate(live.game_date) + ' · LIVE';
+  renderLiveGame();
+  showScreen('screen-live');
+}
+
+function renderLiveGame() {
+  const live = liveGame();
+  if (!live) { showScreen('screen-home'); return; }
+  const el = document.getElementById('live-content');
+  const gPlayers = gamePlayers.filter(gp=>gp.game_id===live.id).map(gp=>gp.player_id);
+  const gLineup = lineups.filter(l=>l.game_id===live.id).sort((a,b)=>a.batting_order-b.batting_order);
+  const gAbs = atBats.filter(a=>a.game_id===live.id);
+
+  if (!gPlayers.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-msg">No players set for this game</div><div class="empty-sub">Admin needs to start the game with player selection</div></div>';
+    return;
+  }
+
+  let html = `<div style="font-size:13px;color:var(--text-light);margin-bottom:12px;text-align:center;">Tap a player to log their at-bat</div>
+  <div class="live-player-grid">`;
+
+  // Show in batting order if set, otherwise roster order
+  const orderedIds = gLineup.length
+    ? [...gLineup.map(l=>l.player_id), ...gPlayers.filter(id=>!gLineup.find(l=>l.player_id===id))]
+    : gPlayers;
+
+  orderedIds.forEach(pid => {
+    const p = players.find(x=>x.id===pid);
+    if (!p) return;
+    const pAbs = gAbs.filter(a=>a.player_id===pid);
+    const st = calcStats(pAbs);
+    const spot = gLineup.find(l=>l.player_id===pid);
+    const me = currentPlayer && pid===currentPlayer.id;
+    html += `<div class="live-player-card ${me?'style="border-color:var(--blue);"':''}" onclick="openLogAb(${pid}, ${live.id})" style="${me?'border-color:var(--blue);':''}" >
+      ${spot?`<div class="lpc-order">${spot.batting_order}</div>`:'<div style="height:28px;"></div>'}
+      <div class="lpc-num">${p.number?'#'+p.number:''}</div>
+      <div class="lpc-name">${esc(p.name)}</div>
+      <div class="lpc-avg">${st.avg}</div>
+      <div class="lpc-stats">${st.ab} AB · ${st.h} H · ${st.rbi} RBI</div>
+    </div>`;
+  });
+
+  html += '</div>';
+
+  // Running score/stats
+  const totalH = gAbs.filter(a=>['single','double','triple','hr'].includes(a.result)).length;
+  const totalRBI = gAbs.reduce((s,a)=>s+(a.rbi||0),0);
+  html += `<div class="card" style="text-align:center;margin-top:4px;">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-light);margin-bottom:6px;">Team This Game</div>
+    <div style="font-size:18px;font-weight:700;">${gAbs.filter(a=>AB_RESULTS.includes(a.result)).length} AB · ${totalH} H · ${totalRBI} RBI</div>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+async function refreshLive() {
+  await loadData();
+  renderLiveGame();
+  showToast('Refreshed');
+}
+
 // ── Log At-Bat ───────────────────────────────────────────────────
-function openLogAb(gameId) {
-  logAbGameId = gameId; selectedResult = null; rbiCount = 0;
-  const g = games.find(x => x.id === gameId);
-  document.getElementById('log-ab-player-name').textContent = currentPlayer ? currentPlayer.name : 'Log At-Bat';
+function openLogAb(playerId, gameId) {
+  logAbPlayerId = playerId; logAbGameId = gameId;
+  selectedResult = null; rbiCount = 0;
+  const p = players.find(x=>x.id===playerId);
+  const g = games.find(x=>x.id===gameId);
+  document.getElementById('log-ab-player-name').textContent = p ? p.name : 'Log At-Bat';
   document.getElementById('log-ab-game-name').textContent = g ? `vs ${g.opponent} · ${fmtDate(g.game_date)}` : '';
   document.getElementById('rbi-val').textContent = '0';
   document.getElementById('ab-inning').value = '';
   document.getElementById('log-ab-error').textContent = '';
-  document.querySelectorAll('.ab-btn').forEach(b => b.classList.remove('selected'));
-  document.getElementById('log-ab-back').onclick = () => {
-    currentGameId ? openGameDetail(currentGameId) : showScreen('screen-home');
-  };
+  document.querySelectorAll('.ab-btn').forEach(b=>b.classList.remove('selected'));
   showScreen('screen-log-ab');
 }
 
 function selectResult(result) {
   selectedResult = result;
-  document.querySelectorAll('.ab-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.ab-btn').forEach(b=>b.classList.remove('selected'));
   const map = {single:'ab-1b',double:'ab-2b',triple:'ab-3b',hr:'ab-hr',bb:'ab-bb',k:'ab-k',sf:'ab-sf',fc:'ab-fc',out:'ab-out'};
-  document.querySelectorAll('.' + map[result]).forEach(b => b.classList.add('selected'));
+  document.querySelectorAll('.'+map[result]).forEach(b=>b.classList.add('selected'));
   document.getElementById('log-ab-error').textContent = '';
 }
 
 function adjustRbi(delta) {
-  rbiCount = Math.max(0, Math.min(10, rbiCount + delta));
+  rbiCount = Math.max(0, Math.min(10, rbiCount+delta));
   document.getElementById('rbi-val').textContent = rbiCount;
 }
 
 async function saveAtBat() {
-  if (!selectedResult) {
-    document.getElementById('log-ab-error').textContent = 'Please select a result';
-    return;
-  }
+  if (!selectedResult) { document.getElementById('log-ab-error').textContent='Please select a result'; return; }
   const inning = document.getElementById('ab-inning').value;
-  const { error } = await sb.from('sb_at_bats').insert({
-    game_id: logAbGameId,
-    player_id: currentPlayer.id,
-    result: selectedResult,
-    rbi: rbiCount,
+  const {error} = await sb.from('sb_at_bats').insert({
+    game_id: logAbGameId, player_id: logAbPlayerId,
+    result: selectedResult, rbi: rbiCount,
     inning: inning ? parseInt(inning) : null
   });
-  if (error) { showToast('Error saving — try again'); return; }
+  if (error) { showToast('Error saving — check your connection'); return; }
   showToast('At-bat saved!');
   await loadData();
-  if (currentGameId === logAbGameId) {
-    openGameDetail(currentGameId);
-  } else {
-    showScreen('screen-home');
-    switchTab('home', document.getElementById('btn-tab-home'));
-  }
+  showScreen('screen-live');
+  renderLiveGame();
 }
 
-async function deleteAtBat(id) {
+async function deleteAtBat(id, gameId) {
   if (!confirm('Remove this at-bat?')) return;
-  await sb.from('sb_at_bats').delete().eq('id', id);
-  showToast('At-bat removed');
+  const {error} = await sb.from('sb_at_bats').delete().eq('id',id);
+  if (error) { showToast('Could not delete'); return; }
+  showToast('Removed');
   await loadData();
-  if (currentGameId) renderGameDetail(games.find(g => g.id === currentGameId));
+  const g = games.find(x=>x.id===gameId);
+  if (g) renderGameDetail(g);
 }
 
 // ── Admin: Roster ────────────────────────────────────────────────
 function renderAdminRoster() {
   const el = document.getElementById('atab-roster');
-  const activePlayers = players.filter(p => p.active);
-  let html = `<button class="btn btn-primary" onclick="openPlayerModal()">+ Add Player</button>`;
-  if (!activePlayers.length) {
-    html += '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-msg">No players yet</div><div class="empty-sub">Add players to get started</div></div>';
+  const active = players.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name));
+  let html = `<div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn btn-primary" style="flex:1;" onclick="openPlayerModal()">+ Add Player</button>
+    <button class="btn btn-outline" style="flex:1;" onclick="openModal('modal-roster-upload')">⬆ Upload CSV</button>
+  </div>`;
+  if (!active.length) {
+    html += '<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-msg">No players yet</div></div>';
   } else {
     html += '<div class="section-card">';
-    activePlayers.sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+    active.forEach(p => {
       html += `<div class="roster-row">
-        <div class="roster-num">${p.number || '—'}</div>
+        <div class="roster-num">${p.number||'—'}</div>
         <div class="roster-name">${esc(p.name)}</div>
         <div class="roster-pin">${p.pin}</div>
-        <button class="btn btn-sm btn-outline" style="margin-left:8px;" onclick="openPlayerModal(${p.id})">Edit</button>
+        <button class="btn btn-sm btn-outline" onclick="openPlayerModal(${p.id})">Edit</button>
       </div>`;
     });
     html += '</div>';
@@ -980,16 +1095,15 @@ function renderAdminRoster() {
   el.innerHTML = html;
 }
 
-function openPlayerModal(playerId) {
-  const modal = document.getElementById('modal-player');
-  const p = playerId ? players.find(x => x.id === playerId) : null;
+function openPlayerModal(pid) {
+  const p = pid ? players.find(x=>x.id===pid) : null;
   document.getElementById('modal-player-title').textContent = p ? 'Edit Player' : 'Add Player';
   document.getElementById('edit-player-id').value = p ? p.id : '';
   document.getElementById('player-name-inp').value = p ? p.name : '';
-  document.getElementById('player-num-inp').value = p ? (p.number || '') : '';
+  document.getElementById('player-num-inp').value = p ? (p.number||'') : '';
   document.getElementById('player-pin-inp').value = p ? p.pin : '';
   document.getElementById('del-player-btn').style.display = p ? '' : 'none';
-  modal.classList.add('open');
+  openModal('modal-player');
 }
 
 async function savePlayer() {
@@ -997,212 +1111,350 @@ async function savePlayer() {
   const name = document.getElementById('player-name-inp').value.trim();
   const number = document.getElementById('player-num-inp').value.trim();
   const pin = document.getElementById('player-pin-inp').value.trim();
-  if (!name || !pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-    showToast('Name and 4-digit PIN required'); return;
-  }
+  if (!name || !/^\d{4}$/.test(pin)) { showToast('Name and 4-digit PIN required'); return; }
   if (id) {
-    await sb.from('sb_players').update({ name, number, pin }).eq('id', parseInt(id));
+    await sb.from('sb_players').update({name,number,pin}).eq('id',parseInt(id));
   } else {
-    await sb.from('sb_players').insert({ name, number, pin, active: true });
+    await sb.from('sb_players').insert({name,number,pin,active:true});
   }
   closeModal('modal-player');
-  await loadData();
-  renderAdminRoster();
-  showToast('Player saved');
+  await loadData(); renderAdminRoster(); showToast('Player saved');
 }
 
 async function deletePlayer() {
   const id = parseInt(document.getElementById('edit-player-id').value);
   if (!confirm('Remove this player from the roster?')) return;
-  await sb.from('sb_players').update({ active: false }).eq('id', id);
+  await sb.from('sb_players').update({active:false}).eq('id',id);
   closeModal('modal-player');
-  await loadData();
-  renderAdminRoster();
-  showToast('Player removed');
+  await loadData(); renderAdminRoster(); showToast('Player removed');
 }
 
-// ── Admin: Games ─────────────────────────────────────────────────
-function renderAdminGames() {
-  const el = document.getElementById('atab-games');
-  const sorted = [...games].sort((a,b) => a.game_date.localeCompare(b.game_date));
-  let html = `<button class="btn btn-primary" onclick="openGameModal()">+ Add Game</button>`;
+// CSV roster upload
+function handleRosterFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => previewRoster(parseCSV(e.target.result));
+  reader.readAsText(file);
+}
+
+function previewRoster(rows) {
+  const el = document.getElementById('roster-preview');
+  if (!rows.length) { el.innerHTML='<div style="color:var(--red)">No valid rows found</div>'; return; }
+  let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} player(s) found:</div>
+  <div class="section-card" style="margin-bottom:12px;">`;
+  rows.forEach(r => {
+    html += `<div class="roster-row"><div class="roster-num">${esc(r.number||'—')}</div><div class="roster-name">${esc(r.name)}</div><div class="roster-pin">${esc(r.pin)}</div></div>`;
+  });
+  html += '</div>';
+  html += `<button class="btn btn-primary" onclick="importRoster(${JSON.stringify(rows).replace(/"/g,'&quot;')})">Import ${rows.length} Players</button>`;
+  el.innerHTML = html;
+}
+
+async function importRoster(rows) {
+  let ok=0, fail=0;
+  for (const r of rows) {
+    if (!r.name || !/^\d{4}$/.test(r.pin||'')) { fail++; continue; }
+    const {error} = await sb.from('sb_players').insert({name:r.name,number:r.number||null,pin:r.pin,active:true});
+    if (error) fail++; else ok++;
+  }
+  closeModal('modal-roster-upload');
+  await loadData(); renderAdminRoster();
+  showToast(`Imported ${ok} players${fail?', '+fail+' skipped':''}`);
+}
+
+// ── Admin: Schedule ───────────────────────────────────────────────
+function renderAdminSchedule() {
+  const el = document.getElementById('atab-schedule');
+  const sorted = [...games].sort((a,b)=>a.game_date.localeCompare(b.game_date));
+  const live = liveGame();
+
+  let html = `<div style="display:flex;gap:8px;margin-bottom:14px;">
+    <button class="btn btn-primary" style="flex:1;" onclick="openGameModal()">+ Add Game</button>
+    <button class="btn btn-outline" style="flex:1;" onclick="openModal('modal-schedule-upload')">⬆ Upload CSV</button>
+  </div>`;
+
+  if (live) {
+    html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;margin-bottom:4px;">● LIVE GAME</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:8px;">vs ${esc(live.opponent)}</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;flex:1;" onclick="openGameDetail(${live.id})">View Stats</button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.9);color:var(--live);border:none;flex:1;font-weight:700;" onclick="openEndGameModal(${live.id})">End Game</button>
+      </div>
+    </div>`;
+  }
+
   if (!sorted.length) {
     html += '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No games yet</div></div>';
   } else {
     html += '<div class="section-card">';
     sorted.forEach(g => {
-      const scoreStr = g.status === 'final' ? ` · ${g.our_score}–${g.opp_score}` : '';
-      html += `<div class="sched-row" onclick="openGameModal(${g.id})">
+      let badge = '';
+      if (g.status==='live') badge = `<span class="game-badge badge-live">● LIVE</span>`;
+      else if (g.status==='final') badge = `<span class="game-badge badge-final">Final ${g.our_score}–${g.opp_score}</span>`;
+      else if (g.status==='cancelled') badge = `<span class="game-badge badge-cancelled">Cancelled</span>`;
+      else badge = `<span class="game-badge badge-${g.home_away}">${g.home_away}</span>`;
+      html += `<div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f4f8;gap:10px;">
         <div class="sched-date-col">${fmtDateShort(g.game_date)}</div>
-        <div class="sched-opp">vs ${esc(g.opponent)}</div>
-        <span class="game-badge ${g.status==='final'?'badge-final':g.status==='cancelled'?'badge-cancelled':'badge-'+g.home_away}">${g.status==='final'?'Final'+scoreStr:g.status==='cancelled'?'Cancelled':g.home_away}</span>
+        <div class="sched-opp" style="cursor:pointer;" onclick="openGameModal(${g.id})">vs ${esc(g.opponent)}</div>
+        ${badge}
+        ${g.status==='scheduled'?`<button class="btn btn-sm btn-live" style="flex-shrink:0;" onclick="openStartLiveModal(${g.id})">▶ Start</button>`:''}
       </div>`;
     });
     html += '</div>';
   }
   el.innerHTML = html;
+
+  // Bind CSV upload
+  const fi = document.querySelector('#modal-schedule-upload input[type=file]');
+  if (fi) fi.onchange = e => handleScheduleFile(e.target);
 }
 
-function openGameModal(gameId) {
-  const modal = document.getElementById('modal-game');
-  const g = gameId ? games.find(x => x.id === gameId) : null;
+function openGameModal(gid) {
+  const g = gid ? games.find(x=>x.id===gid) : null;
   document.getElementById('modal-game-title').textContent = g ? 'Edit Game' : 'Add Game';
   document.getElementById('edit-game-id').value = g ? g.id : '';
   document.getElementById('game-opp-inp').value = g ? g.opponent : '';
   document.getElementById('game-date-inp').value = g ? g.game_date : '';
   document.getElementById('game-ha-inp').value = g ? g.home_away : 'home';
-  document.getElementById('game-loc-inp').value = g ? (g.location || '') : '';
-  document.getElementById('game-notes-inp').value = g ? (g.notes || '') : '';
-  document.getElementById('game-our-inp').value = g ? (g.our_score ?? '') : '';
-  document.getElementById('game-opp-score-inp').value = g ? (g.opp_score ?? '') : '';
+  document.getElementById('game-loc-inp').value = g ? (g.location||'') : '';
+  document.getElementById('game-notes-inp').value = g ? (g.notes||'') : '';
+  document.getElementById('game-our-inp').value = g ? (g.our_score??'') : '';
+  document.getElementById('game-opp-score-inp').value = g ? (g.opp_score??'') : '';
   document.getElementById('game-status-inp').value = g ? g.status : 'scheduled';
-  document.getElementById('score-row').style.display = g ? '' : 'none';
   document.getElementById('status-row').style.display = g ? '' : 'none';
+  document.getElementById('score-row').style.display = g ? '' : 'none';
   document.getElementById('del-game-btn').style.display = g ? '' : 'none';
-  modal.classList.add('open');
+  openModal('modal-game');
 }
 
 async function saveGame() {
   const id = document.getElementById('edit-game-id').value;
   const opponent = document.getElementById('game-opp-inp').value.trim();
   const game_date = document.getElementById('game-date-inp').value;
-  const home_away = document.getElementById('game-ha-inp').value;
-  const location = document.getElementById('game-loc-inp').value.trim();
-  const notes = document.getElementById('game-notes-inp').value.trim();
-  const ourScore = document.getElementById('game-our-inp').value;
-  const oppScore = document.getElementById('game-opp-score-inp').value;
-  const status = document.getElementById('game-status-inp').value;
   if (!opponent || !game_date) { showToast('Opponent and date required'); return; }
-  const data = { opponent, game_date, home_away, location: location || null, notes: notes || null,
-    our_score: ourScore !== '' ? parseInt(ourScore) : null,
-    opp_score: oppScore !== '' ? parseInt(oppScore) : null,
-    status };
-  if (id) {
-    await sb.from('sb_games').update(data).eq('id', parseInt(id));
-  } else {
-    await sb.from('sb_games').insert(data);
-  }
+  const data = {
+    opponent, game_date,
+    home_away: document.getElementById('game-ha-inp').value,
+    location: document.getElementById('game-loc-inp').value.trim() || null,
+    notes: document.getElementById('game-notes-inp').value.trim() || null,
+    status: id ? document.getElementById('game-status-inp').value : 'scheduled',
+    our_score: document.getElementById('game-our-inp').value !== '' ? parseInt(document.getElementById('game-our-inp').value) : null,
+    opp_score: document.getElementById('game-opp-score-inp').value !== '' ? parseInt(document.getElementById('game-opp-score-inp').value) : null,
+  };
+  if (id) { await sb.from('sb_games').update(data).eq('id',parseInt(id)); }
+  else     { await sb.from('sb_games').insert(data); }
   closeModal('modal-game');
-  await loadData();
-  renderAdminGames();
-  showToast('Game saved');
+  await loadData(); renderAdminSchedule(); showToast('Game saved');
 }
 
 async function deleteGame() {
   const id = parseInt(document.getElementById('edit-game-id').value);
   if (!confirm('Delete this game and all its stats?')) return;
-  await sb.from('sb_games').delete().eq('id', id);
+  await sb.from('sb_games').delete().eq('id',id);
   closeModal('modal-game');
-  await loadData();
-  renderAdminGames();
-  showToast('Game deleted');
+  await loadData(); renderAdminSchedule(); showToast('Game deleted');
+}
+
+// CSV schedule upload
+function handleScheduleFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => previewSchedule(parseCSV(e.target.result));
+  reader.readAsText(file);
+}
+
+function previewSchedule(rows) {
+  const el = document.getElementById('schedule-preview');
+  if (!rows.length) { el.innerHTML='<div style="color:var(--red)">No valid rows found</div>'; return; }
+  let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} game(s) found:</div>
+  <div class="section-card" style="margin-bottom:12px;">`;
+  rows.forEach(r => {
+    html += `<div class="sched-row" style="cursor:default;">
+      <div class="sched-date-col">${esc(r.date)}</div>
+      <div class="sched-opp">vs ${esc(r.opponent)}</div>
+      <span class="game-badge badge-${(r.homeaway||r.home_away||'home').toLowerCase()==='home'?'home':'away'}">${(r.homeaway||r.home_away||'home').toLowerCase()}</span>
+    </div>`;
+  });
+  html += '</div>';
+  html += `<button class="btn btn-primary" onclick='importSchedule(${JSON.stringify(rows).replace(/'/g,"\\'")})'>${rows.length} Game(s) importieren</button>`;
+  el.innerHTML = html;
+  // Re-bind properly
+  el.querySelector('.btn').onclick = () => importSchedule(rows);
+}
+
+async function importSchedule(rows) {
+  let ok=0, fail=0;
+  for (const r of rows) {
+    const date = r.date || r.game_date;
+    const opponent = r.opponent;
+    const home_away = (r.homeaway||r.home_away||'home').toLowerCase()==='home'?'home':'away';
+    const location = r.location || null;
+    if (!date || !opponent) { fail++; continue; }
+    const {error} = await sb.from('sb_games').insert({game_date:date,opponent,home_away,location,status:'scheduled'});
+    if (error) fail++; else ok++;
+  }
+  closeModal('modal-schedule-upload');
+  await loadData(); renderAdminSchedule();
+  showToast(`Imported ${ok} games${fail?', '+fail+' skipped':''}`);
+}
+
+// ── Admin: Live Game Management ───────────────────────────────────
+function openStartLiveModal(gameId) {
+  startLiveGameId = gameId;
+  const g = games.find(x=>x.id===gameId);
+  document.getElementById('start-live-title').textContent = `Start: vs ${g?.opponent||''}`;
+  const active = players.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name));
+  const el = document.getElementById('start-live-players');
+  el.innerHTML = active.map(p =>
+    `<div class="player-check-row checked" id="slp-${p.id}" onclick="toggleStartPlayer(${p.id})">
+      <div class="check-box">✓</div>
+      <span style="font-weight:600;">${esc(p.name)}</span>
+      ${p.number?`<span style="font-size:12px;color:var(--text-light);">#${p.number}</span>`:''}
+    </div>`
+  ).join('');
+  openModal('modal-start-live');
+}
+
+function toggleStartPlayer(pid) {
+  const row = document.getElementById('slp-'+pid);
+  row.classList.toggle('checked');
+  row.querySelector('.check-box').textContent = row.classList.contains('checked') ? '✓' : '';
+}
+
+function selectAllPlayers(on) {
+  document.querySelectorAll('#start-live-players .player-check-row').forEach(row => {
+    if (on) { row.classList.add('checked'); row.querySelector('.check-box').textContent='✓'; }
+    else    { row.classList.remove('checked'); row.querySelector('.check-box').textContent=''; }
+  });
+}
+
+async function confirmStartLive() {
+  const active = players.filter(p=>p.active);
+  const selected = active.filter(p => document.getElementById('slp-'+p.id)?.classList.contains('checked'));
+  if (!selected.length) { showToast('Select at least one player'); return; }
+
+  // End any other live game first
+  const prevLive = liveGame();
+  if (prevLive) { await sb.from('sb_games').update({status:'final'}).eq('id',prevLive.id); }
+
+  // Start this game
+  await sb.from('sb_games').update({status:'live'}).eq('id',startLiveGameId);
+  // Set game players
+  await sb.from('sb_game_players').delete().eq('game_id',startLiveGameId);
+  await sb.from('sb_game_players').insert(selected.map(p=>({game_id:startLiveGameId,player_id:p.id})));
+
+  closeModal('modal-start-live');
+  await loadData(); renderAdminSchedule();
+  showToast('Game is LIVE!');
+}
+
+function openEndGameModal(gameId) {
+  endLiveGameId = gameId;
+  document.getElementById('end-our-score').value = '';
+  document.getElementById('end-opp-score').value = '';
+  document.getElementById('end-notes').value = '';
+  openModal('modal-end-game');
+}
+
+async function confirmEndGame() {
+  const ourScore = document.getElementById('end-our-score').value;
+  const oppScore = document.getElementById('end-opp-score').value;
+  const notes = document.getElementById('end-notes').value.trim();
+  await sb.from('sb_games').update({
+    status:'final',
+    our_score: ourScore!=='' ? parseInt(ourScore) : null,
+    opp_score: oppScore!=='' ? parseInt(oppScore) : null,
+    notes: notes || null
+  }).eq('id', endLiveGameId);
+  closeModal('modal-end-game');
+  await loadData(); renderAdminSchedule();
+  showToast('Game ended — results saved!');
 }
 
 // ── Admin: Lineup ────────────────────────────────────────────────
 function renderAdminLineup() {
   const el = document.getElementById('atab-lineup');
-  if (!games.length) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">Add games first</div></div>';
-    return;
+  const eligible = games.filter(g=>g.status!=='cancelled').sort((a,b)=>a.game_date.localeCompare(b.game_date));
+  if (!eligible.length) {
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">Add games first</div></div>'; return;
   }
-  const sorted = [...games].filter(g => g.status !== 'cancelled')
-                           .sort((a,b) => a.game_date.localeCompare(b.game_date));
   let html = `<div class="form-group">
     <label class="form-label">Select Game</label>
     <select class="form-select" id="lineup-game-sel" onchange="renderLineupEditor()">
       <option value="">— pick a game —</option>
-      ${sorted.map(g => `<option value="${g.id}">${fmtDateShort(g.game_date)} vs ${esc(g.opponent)}</option>`).join('')}
+      ${eligible.map(g=>`<option value="${g.id}">${fmtDateShort(g.game_date)} vs ${esc(g.opponent)}${g.status==='live'?' ● LIVE':''}</option>`).join('')}
     </select>
-  </div>
-  <div id="lineup-editor"></div>`;
+  </div><div id="lineup-editor"></div>`;
   el.innerHTML = html;
 }
 
 function renderLineupEditor() {
   const gameId = parseInt(document.getElementById('lineup-game-sel').value);
   const el = document.getElementById('lineup-editor');
-  if (!gameId) { el.innerHTML = ''; return; }
-  const gameLineup = lineups.filter(l => l.game_id === gameId)
-                            .sort((a,b) => a.batting_order - b.batting_order);
-  const SLOTS = 11;
-  const activePlayers = players.filter(p => p.active);
+  if (!gameId) { el.innerHTML=''; return; }
+  const gLineup = lineups.filter(l=>l.game_id===gameId).sort((a,b)=>a.batting_order-b.batting_order);
+  const gPlayerIds = gamePlayers.filter(gp=>gp.game_id===gameId).map(gp=>gp.player_id);
+  const pool = gPlayerIds.length
+    ? players.filter(p=>p.active && gPlayerIds.includes(p.id))
+    : players.filter(p=>p.active);
+  const SLOTS = Math.max(pool.length, 11);
   let html = `<div class="section-card" style="margin-top:4px;"><div class="section-header"><span class="sh-title">Batting Order</span></div><div style="padding:14px 16px;">`;
-  for (let i = 1; i <= SLOTS; i++) {
-    const spot = gameLineup.find(l => l.batting_order === i);
+  for (let i=1; i<=SLOTS; i++) {
+    const spot = gLineup.find(l=>l.batting_order===i);
     html += `<div class="lineup-edit-row">
       <div class="lineup-edit-num">${i}</div>
       <select class="lineup-edit-sel" id="lu-player-${i}">
         <option value="">— open —</option>
-        ${activePlayers.map(p => `<option value="${p.id}" ${spot && spot.player_id === p.id ? 'selected' : ''}>${esc(p.name)}${p.number ? ' #'+p.number : ''}</option>`).join('')}
+        ${pool.map(p=>`<option value="${p.id}" ${spot&&spot.player_id===p.id?'selected':''}>${esc(p.name)}${p.number?' #'+p.number:''}</option>`).join('')}
       </select>
       <select class="lineup-edit-pos" id="lu-pos-${i}">
         <option value="">pos</option>
-        ${POSITIONS.map(pos => `<option value="${pos}" ${spot && spot.position === pos ? 'selected' : ''}>${pos}</option>`).join('')}
+        ${POSITIONS.map(pos=>`<option value="${pos}" ${spot&&spot.position===pos?'selected':''}>${pos}</option>`).join('')}
       </select>
     </div>`;
   }
-  html += `</div></div>
-  <button class="btn btn-primary" onclick="saveLineup(${gameId})">Save Lineup</button>`;
+  html += `</div></div><button class="btn btn-primary" onclick="saveLineup(${gameId},${SLOTS})">Save Lineup</button>`;
   el.innerHTML = html;
 }
 
-async function saveLineup(gameId) {
-  const SLOTS = 11;
-  // Delete existing lineup for this game
-  await sb.from('sb_lineups').delete().eq('game_id', gameId);
+async function saveLineup(gameId, slots) {
+  await sb.from('sb_lineups').delete().eq('game_id',gameId);
   const rows = [];
-  for (let i = 1; i <= SLOTS; i++) {
-    const playerId = document.getElementById('lu-player-' + i).value;
-    const position = document.getElementById('lu-pos-' + i).value;
-    if (playerId) rows.push({ game_id: gameId, player_id: parseInt(playerId), batting_order: i, position: position || null });
+  for (let i=1; i<=slots; i++) {
+    const pid = document.getElementById('lu-player-'+i)?.value;
+    const pos = document.getElementById('lu-pos-'+i)?.value;
+    if (pid) rows.push({game_id:gameId,player_id:parseInt(pid),batting_order:i,position:pos||null});
   }
   if (rows.length) await sb.from('sb_lineups').insert(rows);
-  await loadData();
-  showToast('Lineup saved');
+  await loadData(); showToast('Lineup saved');
 }
 
 // ── Admin: Settings ───────────────────────────────────────────────
 function renderAdminSettings() {
   const el = document.getElementById('atab-settings');
   el.innerHTML = `<div class="card">
-    <div class="card-label" style="margin-bottom:12px;">App Configuration</div>
+    <div class="card-label" style="margin-bottom:12px;">Team Configuration</div>
     <button class="btn btn-outline" onclick="openModal('modal-settings')">⚙️ Edit Settings</button>
   </div>
   <div class="card">
-    <div class="card-label" style="margin-bottom:8px;">Season Stats Reset</div>
-    <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;">Deletes ALL at-bat records for the season. Cannot be undone.</div>
+    <div class="card-label" style="margin-bottom:6px;">Season Stats Reset</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:12px;">Permanently deletes all at-bat records. Cannot be undone.</div>
     <button class="btn btn-red" onclick="resetStats()">Reset All Stats</button>
   </div>`;
 }
 
-function openModal(id) {
-  if (id === 'modal-settings') {
-    document.getElementById('cfg-team-name').value = config.team_name || '';
-    document.getElementById('cfg-season').value = config.season || '';
-    document.getElementById('cfg-admin-pin').value = config.admin_pin || '';
-  }
-  document.getElementById(id).classList.add('open');
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-
 async function saveSettings() {
   const teamName = document.getElementById('cfg-team-name').value.trim();
-  const season = document.getElementById('cfg-season').value.trim();
+  const season   = document.getElementById('cfg-season').value.trim();
   const adminPin = document.getElementById('cfg-admin-pin').value.trim();
-  if (adminPin && (adminPin.length !== 4 || !/^\d{4}$/.test(adminPin))) {
-    showToast('Admin PIN must be 4 digits'); return;
-  }
+  if (adminPin && !/^\d{4}$/.test(adminPin)) { showToast('PIN must be 4 digits'); return; }
   const updates = [
-    { key: 'team_name', value: teamName || config.team_name },
-    { key: 'season', value: season || config.season },
-    { key: 'admin_pin', value: adminPin || config.admin_pin }
+    {key:'team_name', value: teamName || config.team_name},
+    {key:'season',    value: season   || config.season},
+    {key:'admin_pin', value: adminPin || config.admin_pin},
   ];
-  for (const u of updates) {
-    await sb.from('sb_config').upsert(u, { onConflict: 'key' });
-  }
+  for (const u of updates) await sb.from('sb_config').upsert(u,{onConflict:'key'});
   closeModal('modal-settings');
   await loadData();
   document.getElementById('admin-team-name').textContent = config.team_name || 'MinuteMen';
@@ -1211,46 +1463,182 @@ async function saveSettings() {
 
 async function resetStats() {
   if (!confirm('Delete ALL at-bat records for the season? This cannot be undone.')) return;
-  if (!confirm('Are you absolutely sure? All stats will be permanently deleted.')) return;
-  await sb.from('sb_at_bats').delete().neq('id', 0);
-  await loadData();
-  showToast('Stats reset');
+  if (!confirm('Are you sure? All stats will be permanently deleted.')) return;
+  await sb.from('sb_at_bats').delete().neq('id',0);
+  await loadData(); showToast('Stats reset');
+}
+
+// ── Scorebook Export ──────────────────────────────────────────────
+function exportScorebookPrint(gameId) {
+  const g = games.find(x=>x.id===gameId);
+  if (!g) return;
+  const gLineup = lineups.filter(l=>l.game_id===gameId).sort((a,b)=>a.batting_order-b.batting_order);
+  const gAbs = atBats.filter(a=>a.game_id===gameId);
+  const gPlayerIds = gLineup.length
+    ? gLineup.map(l=>l.player_id)
+    : [...new Set(gAbs.map(a=>a.player_id))];
+
+  const maxInning = Math.max(7, ...gAbs.filter(a=>a.inning).map(a=>a.inning));
+  const innings = Array.from({length:maxInning},(_,i)=>i+1);
+
+  // Build per-player, per-inning ab data
+  const playerRows = gPlayerIds.map(pid => {
+    const p = players.find(x=>x.id===pid);
+    const pAbs = gAbs.filter(a=>a.player_id===pid);
+    const st = calcStats(pAbs);
+    const spot = gLineup.find(l=>l.player_id===pid);
+    const byCells = {};
+    const unassigned = [];
+    pAbs.forEach(a => {
+      if (a.inning) { if (!byCells[a.inning]) byCells[a.inning]=[]; byCells[a.inning].push(a); }
+      else unassigned.push(a);
+    });
+    // Distribute unassigned sequentially across innings
+    let inIdx=0;
+    unassigned.forEach(a => {
+      const inn = innings[inIdx % innings.length]; inIdx++;
+      if (!byCells[inn]) byCells[inn]=[];
+      byCells[inn].push(a);
+    });
+    return {p, st, spot, byCells};
+  });
+
+  // Totals
+  const totAbs = gAbs;
+  const totSt = calcStats(totAbs);
+
+  const teamName = config.team_name || 'MinuteMen';
+  const scoreStr = g.our_score!=null ? `${g.our_score} – ${g.opp_score}` : '—';
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Scorebook: ${teamName} vs ${g.opponent}</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#1a2a3a;margin:20px;}
+  h1{font-size:18px;margin-bottom:4px;}
+  .meta{font-size:12px;color:#666;margin-bottom:16px;}
+  table{border-collapse:collapse;width:100%;margin-bottom:20px;}
+  th{background:#0d47a1;color:white;padding:6px 8px;text-align:center;font-size:11px;white-space:nowrap;}
+  th:first-child{text-align:left;min-width:120px;}
+  td{padding:6px 8px;text-align:center;border:1px solid #ccc;font-size:12px;}
+  td:first-child{text-align:left;font-weight:700;color:#0d47a1;border-left:2px solid #0d47a1;}
+  tfoot td{background:#f0f4f8;font-weight:700;border-top:2px solid #0d47a1;}
+  .inn{min-width:48px;font-size:11px;line-height:1.5;}
+  .stat-col{min-width:32px;}
+  .hit{color:#2e7d32;font-weight:700;}
+  .hr{color:#e65100;font-weight:800;}
+  .bb{color:#01579b;}
+  .k{color:#c62828;}
+  .out{color:#616161;}
+  @media print{button{display:none;}body{margin:8px;}}
+</style></head><body>
+<button onclick="window.print()" style="margin-bottom:16px;padding:8px 20px;background:#0d47a1;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Print Scorebook</button>
+<h1>${teamName} vs ${esc(g.opponent)}</h1>
+<div class="meta">${fmtDate(g.game_date)} · ${g.home_away} · ${g.status==='final'?'Final: '+scoreStr:'In Progress'}</div>
+<table>
+<thead><tr>
+  <th>#  Player</th>
+  <th>Pos</th>
+  ${innings.map(i=>`<th class="inn">Inning ${i}</th>`).join('')}
+  <th class="stat-col">AB</th>
+  <th class="stat-col">H</th>
+  <th class="stat-col">2B</th>
+  <th class="stat-col">3B</th>
+  <th class="stat-col">HR</th>
+  <th class="stat-col">RBI</th>
+  <th class="stat-col">BB</th>
+  <th class="stat-col">K</th>
+  <th class="stat-col">AVG</th>
+</tr></thead>
+<tbody>`;
+
+  playerRows.forEach(({p, st, spot, byCells}) => {
+    const orderNum = spot ? spot.batting_order + '. ' : '';
+    const posStr = spot?.position || '';
+    const name = p ? esc(p.name) : '?';
+    html += `<tr>
+      <td>${orderNum}${name}</td>
+      <td>${posStr}</td>
+      ${innings.map(i => {
+        const abs = byCells[i] || [];
+        const cells = abs.map(a => {
+          const code = RESULT_CODE[a.result] || a.result.toUpperCase();
+          let cls = 'out';
+          if (['1B','2B','3B'].includes(code)) cls='hit';
+          if (code==='HR') cls='hr';
+          if (code==='BB') cls='bb';
+          if (code==='K')  cls='k';
+          return `<span class="${cls}">${code}${a.rbi?'<sub>'+a.rbi+'</sub>':''}</span>`;
+        }).join(' ');
+        return `<td class="inn">${cells}</td>`;
+      }).join('')}
+      <td>${st.ab}</td><td>${st.h}</td><td>${st.d2}</td><td>${st.t3}</td><td>${st.hr}</td>
+      <td>${st.rbi}</td><td>${st.bb}</td><td>${st.k}</td>
+      <td>${st.avg}</td>
+    </tr>`;
+  });
+
+  html += `</tbody>
+<tfoot><tr>
+  <td colspan="2">TOTALS</td>
+  ${innings.map(()=>'<td></td>').join('')}
+  <td>${totSt.ab}</td><td>${totSt.h}</td><td>${totSt.d2}</td><td>${totSt.t3}</td><td>${totSt.hr}</td>
+  <td>${totSt.rbi}</td><td>${totSt.bb}</td><td>${totSt.k}</td>
+  <td>${totSt.avg}</td>
+</tr></tfoot>
+</table>
+<div style="font-size:11px;color:#999;margin-top:8px;">Legend: 1B Single · 2B Double · 3B Triple · HR Home Run · BB Walk · K Strikeout · SF Sac Fly · FC Fielder's Choice · O Out · RBI shown as subscript</div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+// ── CSV Parser ────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z_]/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(line => {
+    const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+  });
 }
 
 // ── Utilities ────────────────────────────────────────────────────
 function fmtDate(d) {
   if (!d) return '';
-  const dt = new Date(d + 'T12:00:00');
-  return dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
-
 function fmtDateShort(d) {
   if (!d) return '';
-  const dt = new Date(d + 'T12:00:00');
-  return dt.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
-
 function daysDiff(d) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const dt = new Date(d + 'T12:00:00');
-  return Math.round((today - dt) / 86400000);
+  const today=new Date(); today.setHours(0,0,0,0);
+  return Math.round((today-new Date(d+'T12:00:00'))/86400000);
 }
-
 function esc(s) {
   if (!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2300);
 }
+function openModal(id) {
+  if (id==='modal-settings') {
+    document.getElementById('cfg-team-name').value=config.team_name||'';
+    document.getElementById('cfg-season').value=config.season||'';
+    document.getElementById('cfg-admin-pin').value=config.admin_pin||'';
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
 });
 
 // ── Boot ─────────────────────────────────────────────────────────
