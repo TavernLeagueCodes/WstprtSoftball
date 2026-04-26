@@ -283,6 +283,7 @@ body.dark .scorebook tfoot td{background:#151f2e;}
   <div class="content" id="home-content">
     <div id="tab-home" class="content-inner"></div>
     <div id="tab-stats" class="content-inner" style="display:none;"></div>
+    <div id="tab-coach" class="content-inner" style="display:none;"></div>
     <div id="tab-admin" class="content-inner" style="display:none;">
       <div id="admin-sub-nav" style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;"></div>
       <div id="atab-roster"></div>
@@ -297,6 +298,9 @@ body.dark .scorebook tfoot td{background:#151f2e;}
     </button>
     <button onclick="switchTab('stats',this)" id="btn-tab-stats">
       <span class="bnav-icon">📊</span>Stats
+    </button>
+    <button onclick="switchTab('coach',this)" id="btn-tab-coach" style="display:none;">
+      <span class="bnav-icon">📋</span>Lineup
     </button>
     <button onclick="switchTab('admin',this)" id="btn-tab-admin" style="display:none;">
       <span class="bnav-icon">⚙️</span>Admin
@@ -517,6 +521,11 @@ body.dark .scorebook tfoot td{background:#151f2e;}
       <label class="form-label">Admin PIN (4 digits)</label>
       <input class="form-input" id="cfg-admin-pin" maxlength="4" inputmode="numeric" style="letter-spacing:4px;font-weight:700;" autocomplete="off">
     </div>
+    <div class="form-group">
+      <label class="form-label">Coach PIN (4 digits)</label>
+      <input class="form-input" id="cfg-coach-pin" maxlength="4" inputmode="numeric" style="letter-spacing:4px;font-weight:700;" placeholder="blank = disabled" autocomplete="off">
+      <div style="font-size:11px;color:var(--text-light);margin-top:4px;">Coaches can set lineups but can't edit roster, schedule, or settings.</div>
+    </div>
     <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
     <button class="btn btn-outline" onclick="closeModal('modal-settings')">Cancel</button>
   </div>
@@ -528,7 +537,7 @@ const SUPABASE_ANON_KEY = '%%SUPABASE_ANON_KEY%%';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ── State ────────────────────────────────────────────────────────
-let currentPlayer = null, isAdmin = false;
+let currentPlayer = null, isAdmin = false, isCoach = false;
 let players = [], games = [], lineups = [], atBats = [], config = {}, gamePlayers = [];
 let pinBuffer = '';
 let currentGameId = null, startLiveGameId = null, endLiveGameId = null;
@@ -576,7 +585,7 @@ function showScreen(id) {
 }
 
 function switchTab(tab, btn) {
-  ['home','stats','admin'].forEach(t => {
+  ['home','stats','coach','admin'].forEach(t => {
     const el = document.getElementById('tab-' + t);
     if (el) el.style.display = t === tab ? '' : 'none';
   });
@@ -584,6 +593,7 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   if (tab === 'home')  renderHomeTab();
   if (tab === 'stats') renderStatsTab();
+  if (tab === 'coach') renderCoachTab();
   if (tab === 'admin') renderAdminTab();
 }
 
@@ -626,8 +636,9 @@ function toggleDark() {
 }
 
 function logout() {
-  currentPlayer = null; isAdmin = false; pinBuffer = '';
+  currentPlayer = null; isAdmin = false; isCoach = false; pinBuffer = '';
   document.getElementById('btn-tab-admin').style.display = 'none';
+  document.getElementById('btn-tab-coach').style.display = 'none';
   updatePinDots();
   showScreen('screen-pin');
 }
@@ -650,20 +661,32 @@ function updatePinDots() {
 }
 function checkPin() {
   if (pinBuffer === (config.admin_pin || '0000')) {
-    isAdmin = true; currentPlayer = null;
+    isAdmin = true; isCoach = false; currentPlayer = null;
     document.getElementById('home-team-name').textContent = config.team_name || 'MinuteMen';
     document.getElementById('home-player-name').textContent = 'Admin';
     document.getElementById('btn-tab-admin').style.display = '';
+    document.getElementById('btn-tab-coach').style.display = 'none';
+    showScreen('screen-home');
+    switchTab('home', document.getElementById('btn-tab-home'));
+    pinBuffer = ''; updatePinDots(); return;
+  }
+  if (config.coach_pin && config.coach_pin.length === 4 && pinBuffer === config.coach_pin) {
+    isCoach = true; isAdmin = false; currentPlayer = null;
+    document.getElementById('home-team-name').textContent = config.team_name || 'MinuteMen';
+    document.getElementById('home-player-name').textContent = 'Coach';
+    document.getElementById('btn-tab-coach').style.display = '';
+    document.getElementById('btn-tab-admin').style.display = 'none';
     showScreen('screen-home');
     switchTab('home', document.getElementById('btn-tab-home'));
     pinBuffer = ''; updatePinDots(); return;
   }
   const player = players.filter(p => p.active).find(p => p.pin === pinBuffer);
   if (player) {
-    currentPlayer = player; isAdmin = false;
+    currentPlayer = player; isAdmin = false; isCoach = false;
     document.getElementById('home-team-name').textContent = config.team_name || 'MinuteMen';
     document.getElementById('home-player-name').textContent = player.name + (player.number ? '  #' + player.number : '');
     document.getElementById('btn-tab-admin').style.display = 'none';
+    document.getElementById('btn-tab-coach').style.display = 'none';
     showScreen('screen-home');
     switchTab('home', document.getElementById('btn-tab-home'));
     pinBuffer = ''; updatePinDots(); return;
@@ -1209,6 +1232,63 @@ async function deleteAtBat(id, gameId) {
   if (g) renderGameDetail(g);
 }
 
+// ── Coach Tab (Lineup only) ───────────────────────────────────────
+function renderCoachTab() {
+  const el = document.getElementById('tab-coach');
+  const eligible = games.filter(g=>g.status!=='cancelled').sort((a,b)=>a.game_date.localeCompare(b.game_date));
+  if (!eligible.length) {
+    el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">No games scheduled yet</div></div>'; return;
+  }
+  el.innerHTML = `<div class="form-group">
+    <label class="form-label">Select Game</label>
+    <select class="form-select" id="coach-lineup-game-sel" onchange="renderCoachLineupEditor()">
+      <option value="">— pick a game —</option>
+      ${eligible.map(g=>`<option value="${g.id}">${fmtDateShort(g.game_date)}${g.game_time?' '+esc(g.game_time):''} vs ${esc(g.opponent)}${g.status==='live'?' ● LIVE':''}</option>`).join('')}
+    </select>
+  </div><div id="coach-lineup-editor"></div>`;
+}
+
+function renderCoachLineupEditor() {
+  const gameId = parseInt(document.getElementById('coach-lineup-game-sel').value);
+  const el = document.getElementById('coach-lineup-editor');
+  if (!gameId) { el.innerHTML=''; return; }
+  const gLineup    = lineups.filter(l=>l.game_id===gameId).sort((a,b)=>a.batting_order-b.batting_order);
+  const gPlayerIds = gamePlayers.filter(gp=>gp.game_id===gameId).map(gp=>gp.player_id);
+  const pool = gPlayerIds.length
+    ? players.filter(p=>p.active && gPlayerIds.includes(p.id))
+    : players.filter(p=>p.active);
+  const SLOTS = Math.max(pool.length, 11);
+  let html = `<div class="section-card" style="margin-top:4px;"><div class="section-header"><span class="sh-title">Batting Order</span></div><div style="padding:14px 16px;">`;
+  for (let i=1; i<=SLOTS; i++) {
+    const spot = gLineup.find(l=>l.batting_order===i);
+    html += `<div class="lineup-edit-row">
+      <div class="lineup-edit-num">${i}</div>
+      <select class="lineup-edit-sel" id="coach-lu-player-${i}">
+        <option value="">— open —</option>
+        ${pool.map(p=>`<option value="${p.id}" ${spot&&spot.player_id===p.id?'selected':''}>${esc(p.name)}${p.number?' #'+p.number:''}</option>`).join('')}
+      </select>
+      <select class="lineup-edit-pos" id="coach-lu-pos-${i}">
+        <option value="">pos</option>
+        ${POSITIONS.map(pos=>`<option value="${pos}" ${spot&&spot.position===pos?'selected':''}>${pos}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  html += `</div></div><button class="btn btn-primary" onclick="saveCoachLineup(${gameId},${SLOTS})">Save Lineup</button>`;
+  el.innerHTML = html;
+}
+
+async function saveCoachLineup(gameId, slots) {
+  await sb.from('sb_lineups').delete().eq('game_id',gameId);
+  const rows = [];
+  for (let i=1; i<=slots; i++) {
+    const pid = document.getElementById('coach-lu-player-'+i)?.value;
+    const pos = document.getElementById('coach-lu-pos-'+i)?.value;
+    if (pid) rows.push({game_id:gameId,player_id:parseInt(pid),batting_order:i,position:pos||null});
+  }
+  if (rows.length) await sb.from('sb_lineups').insert(rows);
+  await loadData(); showToast('Lineup saved');
+}
+
 // ── Admin: Roster ────────────────────────────────────────────────
 function renderAdminRoster() {
   const el = document.getElementById('atab-roster');
@@ -1623,14 +1703,17 @@ function renderAdminSettings() {
 }
 
 async function saveSettings() {
-  const teamName = document.getElementById('cfg-team-name').value.trim();
-  const season   = document.getElementById('cfg-season').value.trim();
-  const adminPin = document.getElementById('cfg-admin-pin').value.trim();
-  if (adminPin && !/^\d{4}$/.test(adminPin)) { showToast('PIN must be 4 digits'); return; }
+  const teamName  = document.getElementById('cfg-team-name').value.trim();
+  const season    = document.getElementById('cfg-season').value.trim();
+  const adminPin  = document.getElementById('cfg-admin-pin').value.trim();
+  const coachPin  = document.getElementById('cfg-coach-pin').value.trim();
+  if (adminPin && !/^\d{4}$/.test(adminPin)) { showToast('Admin PIN must be 4 digits'); return; }
+  if (coachPin && !/^\d{4}$/.test(coachPin)) { showToast('Coach PIN must be 4 digits'); return; }
   const updates = [
     {key:'team_name', value: teamName || config.team_name},
     {key:'season',    value: season   || config.season},
     {key:'admin_pin', value: adminPin || config.admin_pin},
+    {key:'coach_pin', value: coachPin},
   ];
   for (const u of updates) await sb.from('sb_config').upsert(u,{onConflict:'key'});
   closeModal('modal-settings');
@@ -1812,6 +1895,7 @@ function openModal(id) {
     document.getElementById('cfg-team-name').value=config.team_name||'';
     document.getElementById('cfg-season').value=config.season||'';
     document.getElementById('cfg-admin-pin').value=config.admin_pin||'';
+    document.getElementById('cfg-coach-pin').value=config.coach_pin||'';
   }
   document.getElementById(id).classList.add('open');
 }

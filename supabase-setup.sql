@@ -12,7 +12,8 @@ create table if not exists sb_config (
 insert into sb_config (key, value) values
   ('team_name',  'MinuteMen'),
   ('season',     '2026'),
-  ('admin_pin',  '0000')
+  ('admin_pin',  '0000'),
+  ('coach_pin',  '')
 on conflict (key) do nothing;
 
 -- 2. Players ------------------------------------------------------
