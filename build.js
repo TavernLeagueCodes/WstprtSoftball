@@ -5,4 +5,9 @@ let html = fs.readFileSync('index.html', 'utf8');
 html = html.replace(/%%SUPABASE_URL%%/g, process.env.SUPABASE_URL || '');
 html = html.replace(/%%SUPABASE_ANON_KEY%%/g, process.env.SUPABASE_ANON_KEY || '');
 fs.writeFileSync('dist/index.html', html);
+
+// Copy static assets
+['MinutemenJersey.jpeg'].forEach(f => {
+  if (fs.existsSync(f)) fs.copyFileSync(f, 'dist/' + f);
+});
 console.log('Build complete → dist/index.html');
