@@ -419,12 +419,16 @@ body.dark .scorebook tfoot td{background:#151f2e;}
         <input class="form-input" id="game-date-inp" type="date">
       </div>
       <div class="form-group">
-        <label class="form-label">Home / Away</label>
-        <select class="form-select" id="game-ha-inp">
-          <option value="home">Home</option>
-          <option value="away">Away</option>
-        </select>
+        <label class="form-label">Time (optional)</label>
+        <input class="form-input" id="game-time-inp" placeholder="7:00 PM" autocomplete="off">
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Home / Away</label>
+      <select class="form-select" id="game-ha-inp">
+        <option value="home">Home</option>
+        <option value="away">Away</option>
+      </select>
     </div>
     <div class="form-group">
       <label class="form-label">Location (optional)</label>
@@ -714,7 +718,7 @@ function renderHomeTab() {
         <span style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;">Live Now</span>
       </div>
       <div style="font-size:20px;font-weight:800;margin-bottom:4px;">vs ${esc(live.opponent)}</div>
-      <div style="font-size:13px;opacity:.9;margin-bottom:12px;">${fmtDate(live.game_date)} · ${live.home_away}${live.location?' · '+esc(live.location):''}</div>
+      <div style="font-size:13px;opacity:.9;margin-bottom:12px;">${fmtDate(live.game_date)}${live.game_time?' · '+esc(live.game_time):''} · ${live.home_away}${live.location?' · '+esc(live.location):''}</div>
       <div style="background:rgba(255,255,255,.2);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;text-align:center;">⚾ Enter Live Game — Log Stats</div>
     </div>`;
   }
@@ -780,7 +784,7 @@ function renderHomeTab() {
           <div style="font-size:20px;font-weight:800;">vs ${esc(nextGame.opponent)}</div>
           <span class="game-badge badge-${nextGame.home_away}">${nextGame.home_away}</span>
         </div>
-        <div style="font-size:13px;color:var(--text-light);">${fmtDate(nextGame.game_date)}${nextGame.location?' · 📍 '+esc(nextGame.location):''}</div>
+        <div style="font-size:13px;color:var(--text-light);">${fmtDate(nextGame.game_date)}${nextGame.game_time?' · '+esc(nextGame.game_time):''}${nextGame.location?' · 📍 '+esc(nextGame.location):''}</div>
         ${mySpot?`<div style="font-size:14px;font-weight:600;background:var(--blue-light);color:var(--blue);padding:8px 12px;border-radius:10px;margin-top:10px;">🏏 Batting #${mySpot.batting_order}${mySpot.position?' · '+mySpot.position:''}</div>`:''}
       </div>
     </div>`;
@@ -797,7 +801,7 @@ function renderHomeTab() {
       const clr=w?'#2e7d32':l?'var(--red)':'#616161';
       const bg=w?'#e8f5e9':l?'#ffebee':'#f5f5f5';
       html += `<div class="sched-row" onclick="openGameDetail(${g.id})">
-        <div class="sched-date-col">${fmtDateShort(g.game_date)}</div>
+        <div class="sched-date-col">${fmtDateShort(g.game_date)}${g.game_time?`<div style="font-size:11px;">${esc(g.game_time)}</div>`:''}</div>
         <div class="sched-opp">vs ${esc(g.opponent)}</div>
         <span style="font-size:12px;font-weight:800;padding:4px 10px;border-radius:20px;background:${bg};color:${clr};">${wl} ${g.our_score}–${g.opp_score}</span>
       </div>`;
@@ -821,7 +825,7 @@ function renderHomeTab() {
         ? `<button class="btn btn-sm btn-live" style="flex-shrink:0;margin-left:6px;" onclick="event.stopPropagation();openStartLiveModal(${g.id})">▶ Start</button>`
         : '';
       html += `<div class="sched-row" onclick="openGameDetail(${g.id})">
-        <div class="sched-date-col">${fmtDateShort(g.game_date)}</div>
+        <div class="sched-date-col">${fmtDateShort(g.game_date)}${g.game_time?`<div style="font-size:11px;">${esc(g.game_time)}</div>`:''}</div>
         <div class="sched-opp">vs ${esc(g.opponent)}</div>
         ${right}${startBtn}
       </div>`;
@@ -874,7 +878,7 @@ function openGameDetail(gameId, fromScreen) {
   const g = games.find(x=>x.id===gameId);
   if (!g) return;
   document.getElementById('gd-title').textContent = 'vs ' + g.opponent;
-  document.getElementById('gd-sub').textContent = fmtDate(g.game_date) + ' · ' + g.home_away;
+  document.getElementById('gd-sub').textContent = fmtDate(g.game_date) + (g.game_time ? ' · ' + g.game_time : '') + ' · ' + g.home_away;
   const backBtn = document.getElementById('gd-back-btn');
   backBtn.onclick = () => showScreen('screen-home');
 
@@ -991,7 +995,7 @@ function enterLiveGame() {
   liveRbiCount = 0;
   liveInning = '';
   document.getElementById('live-title').textContent = 'vs ' + live.opponent;
-  document.getElementById('live-sub').textContent = fmtDate(live.game_date) + ' · LIVE';
+  document.getElementById('live-sub').textContent = fmtDate(live.game_date) + (live.game_time ? ' · ' + live.game_time : '') + ' · LIVE';
   const navRight = document.getElementById('live-nav-right');
   if (isAdmin) {
     navRight.innerHTML = `<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;margin-right:6px;" onclick="refreshLive()">↻</button>
@@ -1338,7 +1342,7 @@ function renderAdminSchedule() {
       else if (g.status==='cancelled') badge = `<span class="game-badge badge-cancelled">Cancelled</span>`;
       else badge = `<span class="game-badge badge-${g.home_away}">${g.home_away}</span>`;
       html += `<div style="display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid #f0f4f8;gap:10px;">
-        <div class="sched-date-col">${fmtDateShort(g.game_date)}</div>
+        <div class="sched-date-col">${fmtDateShort(g.game_date)}${g.game_time?`<div style="font-size:11px;">${esc(g.game_time)}</div>`:''}</div>
         <div class="sched-opp" style="cursor:pointer;" onclick="openGameModal(${g.id})">vs ${esc(g.opponent)}</div>
         ${badge}
         ${g.status==='scheduled'?`<button class="btn btn-sm btn-live" style="flex-shrink:0;" onclick="openStartLiveModal(${g.id})">▶ Start</button>`:''}
@@ -1359,6 +1363,7 @@ function openGameModal(gid) {
   document.getElementById('edit-game-id').value = g ? g.id : '';
   document.getElementById('game-opp-inp').value = g ? g.opponent : '';
   document.getElementById('game-date-inp').value = g ? g.game_date : '';
+  document.getElementById('game-time-inp').value = g ? (g.game_time||'') : '';
   document.getElementById('game-ha-inp').value = g ? g.home_away : 'home';
   document.getElementById('game-loc-inp').value = g ? (g.location||'') : '';
   document.getElementById('game-notes-inp').value = g ? (g.notes||'') : '';
@@ -1378,6 +1383,7 @@ async function saveGame() {
   if (!opponent || !game_date) { showToast('Opponent and date required'); return; }
   const data = {
     opponent, game_date,
+    game_time: document.getElementById('game-time-inp').value.trim() || null,
     home_away: document.getElementById('game-ha-inp').value,
     location: document.getElementById('game-loc-inp').value.trim() || null,
     notes: document.getElementById('game-notes-inp').value.trim() || null,
@@ -1412,17 +1418,19 @@ function normalizeScheduleRow(r) {
   // Detect 5-column format: Date, Time, Opponent, HomeAway, Location
   if (vals.length >= 5 && /^\d+[ap]m$/i.test((r.opponent || '').trim())) {
     return {
-      date: (r.date || '').trim(),
-      opponent: (vals[2] || '').trim(),
+      date:      (r.date || '').trim(),
+      time:      (vals[1] || '').trim() || null,
+      opponent:  (vals[2] || '').trim(),
       home_away: (vals[3] || 'home').trim().toLowerCase() === 'home' ? 'home' : 'away',
-      location: (vals[4] || '').trim() || null,
+      location:  (vals[4] || '').trim() || null,
     };
   }
   return {
-    date: (r.date || r.game_date || '').trim(),
-    opponent: (r.opponent || '').trim(),
+    date:      (r.date || r.game_date || '').trim(),
+    time:      (r.time || '').trim() || null,
+    opponent:  (r.opponent || '').trim(),
     home_away: (r.homeaway || r.home_away || 'home').trim().toLowerCase() === 'home' ? 'home' : 'away',
-    location: (r.location || '').trim() || null,
+    location:  (r.location || '').trim() || null,
   };
 }
 
@@ -1440,7 +1448,7 @@ function previewSchedule(rows) {
   rows.forEach(r => {
     const n = normalizeScheduleRow(r);
     html += `<div class="sched-row" style="cursor:default;">
-      <div class="sched-date-col">${esc(n.date)}</div>
+      <div class="sched-date-col">${esc(n.date)}${n.time?`<div style="font-size:11px;color:var(--text-light);">${esc(n.time)}</div>`:''}</div>
       <div class="sched-opp">vs ${esc(n.opponent)}</div>
       <span class="game-badge badge-${n.home_away}">${n.home_away}</span>
     </div>`;
@@ -1455,9 +1463,9 @@ async function importSchedule() {
   const rows = _pendingSchedule;
   let ok=0, fail=0;
   for (const r of rows) {
-    const {date, opponent, home_away, location} = normalizeScheduleRow(r);
+    const {date, time, opponent, home_away, location} = normalizeScheduleRow(r);
     if (!date || !opponent) { fail++; continue; }
-    const {error} = await sb.from('sb_games').insert({game_date:date,opponent,home_away,location,status:'scheduled'});
+    const {error} = await sb.from('sb_games').insert({game_date:date,game_time:time||null,opponent,home_away,location,status:'scheduled'});
     if (error) fail++; else ok++;
   }
   closeModal('modal-schedule-upload');
@@ -1553,7 +1561,7 @@ function renderAdminLineup() {
     <label class="form-label">Select Game</label>
     <select class="form-select" id="lineup-game-sel" onchange="renderLineupEditor()">
       <option value="">— pick a game —</option>
-      ${eligible.map(g=>`<option value="${g.id}">${fmtDateShort(g.game_date)} vs ${esc(g.opponent)}${g.status==='live'?' ● LIVE':''}</option>`).join('')}
+      ${eligible.map(g=>`<option value="${g.id}">${fmtDateShort(g.game_date)}${g.game_time?' '+esc(g.game_time):''} vs ${esc(g.opponent)}${g.status==='live'?' ● LIVE':''}</option>`).join('')}
     </select>
   </div><div id="lineup-editor"></div>`;
   el.innerHTML = html;
@@ -1703,7 +1711,7 @@ function exportScorebookPrint(gameId) {
 </style></head><body>
 <button onclick="window.print()" style="margin-bottom:16px;padding:8px 20px;background:#0d47a1;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Print Scorebook</button>
 <h1>${teamName} vs ${esc(g.opponent)}</h1>
-<div class="meta">${fmtDate(g.game_date)} · ${g.home_away} · ${g.status==='final'?'Final: '+scoreStr:'In Progress'}</div>
+<div class="meta">${fmtDate(g.game_date)}${g.game_time?' · '+g.game_time:''} · ${g.home_away} · ${g.status==='final'?'Final: '+scoreStr:'In Progress'}</div>
 <table>
 <thead><tr>
   <th>#  Player</th>

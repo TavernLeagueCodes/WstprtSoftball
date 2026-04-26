@@ -30,6 +30,7 @@ create table if not exists sb_players (
 create table if not exists sb_games (
   id          serial primary key,
   game_date   date not null,
+  game_time   text,
   opponent    text not null,
   home_away   text not null default 'home',
   location    text,
