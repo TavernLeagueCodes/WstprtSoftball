@@ -6,7 +6,7 @@
 <title>MinuteMen Softball</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-:root{--blue:#0d47a1;--blue-dark:#002171;--blue-light:#e3f0fb;--green:#388e3c;--red:#c62828;--red-light:#ffcdd2;--gold:#f9a825;--gold-light:#fff8e1;--live:#d32f2f;--bg:#f0f4f8;--white:#fff;--text:#1a2a3a;--text-light:#6b7c93;--border:#d0dae6;--shadow:0 2px 12px rgba(0,0,0,.10);--radius:14px;}
+:root{--blue:#3D6B82;--blue-dark:#254C61;--blue-light:#E3EEF3;--green:#388e3c;--red:#CC2020;--red-light:#ffcdd2;--gold:#f9a825;--gold-light:#fff8e1;--live:#CC2020;--bg:#f0f4f8;--white:#fff;--text:#1a1a1a;--text-light:#6b7c93;--border:#d0dae6;--shadow:0 2px 12px rgba(0,0,0,.10);--radius:14px;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
 .screen{display:none;min-height:100vh;flex-direction:column;}
@@ -218,7 +218,7 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .empty-sub{font-size:13px;margin-top:6px;}
 
 /* DARK MODE */
-body.dark{--bg:#0f1923;--text:#e8f0fe;--text-light:#8fa3c0;--border:#2a3a50;--shadow:0 2px 12px rgba(0,0,0,.4);--blue-light:#1a3050;}
+body.dark{--bg:#0f1923;--text:#e8f0fe;--text-light:#8fa3c0;--border:#2a3a50;--shadow:0 2px 12px rgba(0,0,0,.4);--blue-light:#162a35;}
 body.dark .card,body.dark .section-card,body.dark .modal,body.dark .pin-key,body.dark .bottom-nav,body.dark .ab-btn,body.dark .live-player-card,body.dark .drop-zone{background:#1a2535;}
 body.dark .form-input,body.dark .form-select,body.dark .lineup-edit-sel,body.dark .lineup-edit-pos{background:#1a2535;color:#e8f0fe;border-color:#2a3a50;}
 body.dark .stats-table td,body.dark .scorebook td{border-color:#1e2f45;}
@@ -226,7 +226,7 @@ body.dark .btn-outline{background:#1e2f45;color:#e8f0fe;border-color:#2a3a50;}
 body.dark .bottom-nav{background:#1a2535;border-color:#2a3a50;}
 body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1e2f45;}
 body.dark .player-check-row{background:#1a2535;border-color:#2a3a50;}
-body.dark .player-check-row.checked{background:#1a3050;}
+body.dark .player-check-row.checked{background:#162a35;}
 body.dark .scorebook tfoot td{background:#151f2e;}
 @media(max-width:480px){.content-inner{padding:14px 10px 90px;}.ab-btn{padding:14px 4px;font-size:14px;}.live-player-grid{grid-template-columns:1fr 1fr;}}
 </style>
@@ -243,7 +243,7 @@ body.dark .scorebook tfoot td{background:#151f2e;}
 <!-- PIN -->
 <div class="screen" id="screen-pin">
   <div class="pin-box">
-    <div class="pin-logo">⚾</div>
+    <div class="pin-logo"><img src="MinutemenJersey.jpeg" style="width:90px;height:90px;border-radius:50%;object-fit:cover;object-position:center 30%;border:3px solid var(--blue);box-shadow:0 4px 16px rgba(0,0,0,.18);"></div>
     <div class="pin-title" id="pin-team-name">MinuteMen</div>
     <div class="pin-sub" id="pin-season-sub">Enter your PIN</div>
     <div class="pin-dots">
@@ -270,7 +270,7 @@ body.dark .scorebook tfoot td{background:#151f2e;}
 <!-- PLAYER HOME -->
 <div class="screen" id="screen-home">
   <div class="top-nav">
-    <span style="font-size:22px;">⚾</span>
+    <img src="MinutemenJersey.jpeg" style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:center 30%;border:2px solid rgba(255,255,255,.35);flex-shrink:0;">
     <div>
       <div class="nav-title" id="home-team-name">MinuteMen</div>
       <div class="nav-sub" id="home-player-name"></div>
