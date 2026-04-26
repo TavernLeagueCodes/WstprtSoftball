@@ -86,6 +86,14 @@ create policy "public read game_players" on sb_game_players for select using (tr
 create policy "public read lineups"      on sb_lineups      for select using (true);
 create policy "public read at_bats"      on sb_at_bats      for select using (true);
 
+-- Anon (PIN-based admin/players) can manage all tables
+-- Security is enforced by PIN at the app level, not Supabase auth
+create policy "anon manage config"   on sb_config  for all to anon using (true) with check (true);
+create policy "anon manage players"  on sb_players for all to anon using (true) with check (true);
+create policy "anon insert games"    on sb_games   for insert to anon with check (true);
+create policy "anon delete games"    on sb_games   for delete to anon using (true);
+create policy "anon manage lineups"  on sb_lineups for all to anon using (true) with check (true);
+
 -- Anon (PIN users) can insert/delete at-bats ONLY during a live game
 create policy "anon insert at_bats" on sb_at_bats for insert to anon
   with check (

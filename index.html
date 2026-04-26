@@ -458,7 +458,8 @@ body.dark .scorebook tfoot td{background:#151f2e;}
     </div>
     <div class="fmt-hint"><strong>Required columns (header row):</strong><br>
       <code>Date</code> (YYYY-MM-DD), <code>Opponent</code>, <code>HomeAway</code>, <code>Location</code><br>
-      Example: <code>2026-05-01,Tigers,home,Central Park</code>
+      Example: <code>2026-05-01,Tigers,home,Central Park</code><br>
+      Also accepts: <code>Date, Time, Opponent, HomeAway, Location</code> (5-column with game time)
     </div>
     <div id="schedule-preview" style="margin-top:12px;"></div>
     <button class="btn btn-primary" id="schedule-import-btn" style="display:none;" onclick="importSchedule()">Import Games</button>
@@ -1275,6 +1276,25 @@ function handleScheduleFile(input) {
   reader.readAsText(file);
 }
 
+function normalizeScheduleRow(r) {
+  const vals = r._vals || [];
+  // Detect 5-column format: Date, Time, Opponent, HomeAway, Location
+  if (vals.length >= 5 && /^\d+[ap]m$/i.test((r.opponent || '').trim())) {
+    return {
+      date: (r.date || '').trim(),
+      opponent: (vals[2] || '').trim(),
+      home_away: (vals[3] || 'home').trim().toLowerCase() === 'home' ? 'home' : 'away',
+      location: (vals[4] || '').trim() || null,
+    };
+  }
+  return {
+    date: (r.date || r.game_date || '').trim(),
+    opponent: (r.opponent || '').trim(),
+    home_away: (r.homeaway || r.home_away || 'home').trim().toLowerCase() === 'home' ? 'home' : 'away',
+    location: (r.location || '').trim() || null,
+  };
+}
+
 function previewSchedule(rows) {
   _pendingSchedule = rows;
   const el = document.getElementById('schedule-preview');
@@ -1287,10 +1307,11 @@ function previewSchedule(rows) {
   let html = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">${rows.length} game(s) found:</div>
   <div class="section-card" style="margin-bottom:12px;">`;
   rows.forEach(r => {
+    const n = normalizeScheduleRow(r);
     html += `<div class="sched-row" style="cursor:default;">
-      <div class="sched-date-col">${esc(r.date)}</div>
-      <div class="sched-opp">vs ${esc(r.opponent)}</div>
-      <span class="game-badge badge-${(r.homeaway||r.home_away||'home').toLowerCase()==='home'?'home':'away'}">${(r.homeaway||r.home_away||'home').toLowerCase()}</span>
+      <div class="sched-date-col">${esc(n.date)}</div>
+      <div class="sched-opp">vs ${esc(n.opponent)}</div>
+      <span class="game-badge badge-${n.home_away}">${n.home_away}</span>
     </div>`;
   });
   html += '</div>';
@@ -1303,10 +1324,7 @@ async function importSchedule() {
   const rows = _pendingSchedule;
   let ok=0, fail=0;
   for (const r of rows) {
-    const date = (r.date || r.game_date || '').trim();
-    const opponent = (r.opponent || '').trim();
-    const home_away = (r.homeaway||r.home_away||'home').trim().toLowerCase()==='home'?'home':'away';
-    const location = (r.location||'').trim() || null;
+    const {date, opponent, home_away, location} = normalizeScheduleRow(r);
     if (!date || !opponent) { fail++; continue; }
     const {error} = await sb.from('sb_games').insert({game_date:date,opponent,home_away,location,status:'scheduled'});
     if (error) fail++; else ok++;
@@ -1618,7 +1636,9 @@ function parseCSV(text) {
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z_]/g,''));
   return lines.slice(1).filter(l=>l.trim()).map(line => {
     const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
-    return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+    const row = Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+    row._vals = vals;
+    return row;
   });
 }
 
