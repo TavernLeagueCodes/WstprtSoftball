@@ -153,11 +153,23 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .roster-name{flex:1;font-size:15px;font-weight:600;}
 .roster-pin{font-size:12px;color:var(--text-light);letter-spacing:3px;}
 
-/* PLAYER CHECKLIST (for live game start) */
+/* PLAYER CHECKLIST (for late arrival modal) */
 .player-check-row{background:white;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s;user-select:none;}
 .player-check-row.checked{border-color:var(--blue);background:var(--blue-light);}
 .check-box{width:24px;height:24px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#e0e0e0;font-size:14px;transition:background .15s;}
 .player-check-row.checked .check-box{background:var(--green);color:white;}
+
+/* START LIVE LINEUP EDITOR */
+.sll-row{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);}
+.sll-bench{opacity:.7;}
+.sll-num{width:20px;text-align:right;font-size:13px;font-weight:700;color:var(--text-light);flex-shrink:0;}
+.sll-arrows{display:flex;flex-direction:column;gap:2px;flex-shrink:0;}
+.sll-arrow{background:none;border:1px solid var(--border);border-radius:4px;width:24px;height:20px;font-size:9px;cursor:pointer;padding:0;line-height:1;color:var(--text-light);}
+.sll-arrow:hover:not(:disabled){background:var(--bg);color:var(--text);}
+.sll-arrow:disabled{opacity:.2;cursor:default;}
+.sll-remove{background:none;border:none;color:var(--text-light);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0;}
+.sll-remove:hover{color:var(--red);}
+.sll-section-label{font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;padding:10px 4px 6px;}
 
 /* FORM */
 .form-group{margin-bottom:14px;}
@@ -227,6 +239,7 @@ body.dark .bottom-nav{background:#1a2535;border-color:#2a3a50;}
 body.dark .lineup-row,body.dark .roster-row,body.dark .sched-row{border-color:#1e2f45;}
 body.dark .player-check-row{background:#1a2535;border-color:#2a3a50;}
 body.dark .player-check-row.checked{background:#162a35;}
+body.dark .sll-row{border-color:#2a3a50;}
 body.dark .scorebook tfoot td{background:#151f2e;}
 @media(max-width:480px){.content-inner{padding:14px 10px 90px;}.ab-btn{padding:14px 4px;font-size:14px;}.live-player-grid{grid-template-columns:1fr 1fr;}}
 </style>
@@ -466,19 +479,25 @@ body.dark .scorebook tfoot td{background:#151f2e;}
   </div>
 </div>
 
-<!-- MODAL: Start Live Game (player selection) -->
+<!-- MODAL: Start Live Game (lineup editor) -->
 <div class="modal-overlay" id="modal-start-live">
   <div class="modal">
     <div class="modal-title" id="start-live-title">Start Live Game</div>
-    <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Select who is playing today:</div>
-    <div id="start-live-players"></div>
-    <div style="margin-top:4px;margin-bottom:14px;">
-      <button style="background:none;border:none;color:var(--blue);font-size:13px;cursor:pointer;font-weight:600;" onclick="selectAllPlayers(true)">Select All</button>
-      &nbsp;·&nbsp;
-      <button style="background:none;border:none;color:var(--text-light);font-size:13px;cursor:pointer;" onclick="selectAllPlayers(false)">Clear All</button>
+    <div id="start-live-body"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-live" onclick="confirmStartLive()">🔴 Start Game</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-start-live')" style="margin-top:8px;">Cancel</button>
     </div>
-    <button class="btn btn-live" onclick="confirmStartLive()">🔴 Start Game</button>
-    <button class="btn btn-outline" onclick="closeModal('modal-start-live')">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: Add Late Arrival -->
+<div class="modal-overlay" id="modal-add-late">
+  <div class="modal">
+    <div class="modal-title">Add Late Arrival</div>
+    <div style="font-size:13px;color:var(--text-light);margin-bottom:14px;">Select a player to add to the end of the batting order:</div>
+    <div id="late-arrival-list"></div>
+    <button class="btn btn-outline" onclick="closeModal('modal-add-late')" style="margin-top:14px;">Cancel</button>
   </div>
 </div>
 
@@ -542,6 +561,7 @@ let players = [], games = [], lineups = [], atBats = [], config = {}, gamePlayer
 let pinBuffer = '';
 let currentGameId = null, startLiveGameId = null, endLiveGameId = null;
 let _pendingRoster = [], _pendingSchedule = [];
+let _startLineup = [], _startBench = [];
 let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
 
@@ -1148,6 +1168,11 @@ function renderLiveGame() {
       ${isDeck&&!isCur?`<span style="font-size:10px;font-weight:700;color:#f57f17;background:#fff8e1;border:1px solid #ffe082;padding:3px 8px;border-radius:10px;white-space:nowrap;">ON DECK</span>`:''}
     </div>`;
   });
+  if (isAdmin || isCoach) {
+    html += `<div style="padding:10px 8px 4px;">
+      <button style="width:100%;background:none;border:1px dashed var(--border);color:var(--text-light);font-size:12px;padding:8px;border-radius:8px;cursor:pointer;font-family:inherit;" onclick="openAddLatePlayerModal()">+ Add late arrival</button>
+    </div>`;
+  }
   html += '</div>';
 
   // Team totals
@@ -1556,53 +1581,163 @@ async function importSchedule() {
 // ── Admin: Live Game Management ───────────────────────────────────
 function openStartLiveModal(gameId) {
   startLiveGameId = gameId;
-  const g = games.find(x=>x.id===gameId);
-  document.getElementById('start-live-title').textContent = `Start: vs ${g?.opponent||''}`;
-  const active = players.filter(p=>p.active).sort((a,b)=>a.name.localeCompare(b.name));
-  const el = document.getElementById('start-live-players');
-  el.innerHTML = active.map(p =>
-    `<div class="player-check-row checked" id="slp-${p.id}" onclick="toggleStartPlayer(${p.id})">
-      <div class="check-box">✓</div>
-      <span style="font-weight:600;">${esc(p.name)}</span>
-      ${p.number?`<span style="font-size:12px;color:var(--text-light);">#${p.number}</span>`:''}
-    </div>`
-  ).join('');
+  const g = games.find(x => x.id === gameId);
+  document.getElementById('start-live-title').textContent = `Start: vs ${g?.opponent || ''}`;
+
+  const savedLu = lineups.filter(l => l.game_id === gameId).sort((a,b) => a.batting_order - b.batting_order);
+  const active  = players.filter(p => p.active);
+  const inLuIds = new Set(savedLu.map(l => l.player_id));
+
+  if (savedLu.length) {
+    _startLineup = savedLu
+      .filter(l => active.find(p => p.id === l.player_id))
+      .map(l => {
+        const p = active.find(x => x.id === l.player_id);
+        return { player_id: l.player_id, name: p.name, number: p.number || '', position: l.position || '' };
+      });
+    _startBench = active
+      .filter(p => !inLuIds.has(p.id))
+      .sort((a,b) => a.name.localeCompare(b.name))
+      .map(p => ({ player_id: p.id, name: p.name, number: p.number || '' }));
+  } else {
+    _startLineup = active
+      .sort((a,b) => a.name.localeCompare(b.name))
+      .map(p => ({ player_id: p.id, name: p.name, number: p.number || '', position: '' }));
+    _startBench = [];
+  }
+
+  renderStartLineup();
   openModal('modal-start-live');
 }
 
-function toggleStartPlayer(pid) {
-  const row = document.getElementById('slp-'+pid);
-  row.classList.toggle('checked');
-  row.querySelector('.check-box').textContent = row.classList.contains('checked') ? '✓' : '';
+function renderStartLineup() {
+  const el = document.getElementById('start-live-body');
+  let html = `<div class="sll-section-label">Batting Order</div>`;
+
+  if (_startLineup.length) {
+    _startLineup.forEach((item, idx) => {
+      const posOpts = POSITIONS.map(p => `<option value="${p}"${item.position===p?' selected':''}>${p}</option>`).join('');
+      html += `<div class="sll-row">
+        <div class="sll-num">${idx+1}</div>
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.name)}${item.number?` <span style="font-size:11px;color:var(--text-light);">#${item.number}</span>`:''}</div>
+        </div>
+        <select class="form-select" style="width:64px;padding:4px 2px;font-size:12px;flex-shrink:0;" onchange="setStartPosition(${item.player_id},this.value)">
+          <option value="">Pos</option>${posOpts}
+        </select>
+        <div class="sll-arrows">
+          <button class="sll-arrow" onclick="moveStartPlayer(${item.player_id},-1)"${idx===0?' disabled':''}>▲</button>
+          <button class="sll-arrow" onclick="moveStartPlayer(${item.player_id},1)"${idx===_startLineup.length-1?' disabled':''}>▼</button>
+        </div>
+        <button class="sll-remove" onclick="removeFromLineup(${item.player_id})" title="Scratch player">✕</button>
+      </div>`;
+    });
+  } else {
+    html += `<div style="color:var(--text-light);font-size:13px;padding:12px 4px;">No players in lineup. Add players from bench below.</div>`;
+  }
+
+  if (_startBench.length) {
+    html += `<div class="sll-section-label" style="margin-top:4px;">Bench — tap to add</div>`;
+    _startBench.forEach(item => {
+      html += `<div class="sll-row sll-bench">
+        <div class="sll-num">—</div>
+        <div style="flex:1;min-width:0;overflow:hidden;">
+          <div style="font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.name)}${item.number?` <span style="font-size:11px;">#${item.number}</span>`:''}</div>
+        </div>
+        <button class="btn btn-sm btn-outline" style="font-size:12px;padding:4px 10px;margin-bottom:0;flex-shrink:0;" onclick="addBenchToLineup(${item.player_id})">+ Add</button>
+      </div>`;
+    });
+  }
+
+  el.innerHTML = html;
 }
 
-function selectAllPlayers(on) {
-  document.querySelectorAll('#start-live-players .player-check-row').forEach(row => {
-    if (on) { row.classList.add('checked'); row.querySelector('.check-box').textContent='✓'; }
-    else    { row.classList.remove('checked'); row.querySelector('.check-box').textContent=''; }
-  });
+function moveStartPlayer(pid, dir) {
+  const idx = _startLineup.findIndex(x => x.player_id === pid);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= _startLineup.length) return;
+  [_startLineup[idx], _startLineup[newIdx]] = [_startLineup[newIdx], _startLineup[idx]];
+  renderStartLineup();
+}
+
+function setStartPosition(pid, pos) {
+  const item = _startLineup.find(x => x.player_id === pid);
+  if (item) item.position = pos;
+}
+
+function removeFromLineup(pid) {
+  const idx = _startLineup.findIndex(x => x.player_id === pid);
+  if (idx < 0) return;
+  const [item] = _startLineup.splice(idx, 1);
+  _startBench.push({ player_id: item.player_id, name: item.name, number: item.number });
+  _startBench.sort((a,b) => a.name.localeCompare(b.name));
+  renderStartLineup();
+}
+
+function addBenchToLineup(pid) {
+  const idx = _startBench.findIndex(x => x.player_id === pid);
+  if (idx < 0) return;
+  const [item] = _startBench.splice(idx, 1);
+  _startLineup.push({ player_id: item.player_id, name: item.name, number: item.number, position: '' });
+  renderStartLineup();
 }
 
 async function confirmStartLive() {
-  const active = players.filter(p=>p.active);
-  const selected = active.filter(p => document.getElementById('slp-'+p.id)?.classList.contains('checked'));
-  if (!selected.length) { showToast('Select at least one player'); return; }
+  if (!_startLineup.length) { showToast('Add at least one player to the lineup'); return; }
 
-  // End any other live game first
   const prevLive = liveGame();
   if (prevLive) { await sb.from('sb_games').update({status:'final'}).eq('id',prevLive.id); }
 
-  // Start this game
   await sb.from('sb_games').update({status:'live'}).eq('id',startLiveGameId);
-  // Set game players
+
   await sb.from('sb_game_players').delete().eq('game_id',startLiveGameId);
-  await sb.from('sb_game_players').insert(selected.map(p=>({game_id:startLiveGameId,player_id:p.id})));
+  await sb.from('sb_game_players').insert(_startLineup.map(p => ({game_id:startLiveGameId, player_id:p.player_id})));
+
+  await sb.from('sb_lineups').delete().eq('game_id',startLiveGameId);
+  await sb.from('sb_lineups').insert(_startLineup.map((p,i) => ({
+    game_id: startLiveGameId,
+    player_id: p.player_id,
+    batting_order: i + 1,
+    position: p.position || null
+  })));
 
   closeModal('modal-start-live');
   await loadData();
   showToast('Game is LIVE!');
   showScreen('screen-home');
   switchTab('home', document.getElementById('btn-tab-home'));
+}
+
+function openAddLatePlayerModal() {
+  const live = liveGame();
+  if (!live) return;
+  const inGame = new Set(gamePlayers.filter(gp => gp.game_id === live.id).map(gp => gp.player_id));
+  const available = players.filter(p => p.active && !inGame.has(p.id)).sort((a,b) => a.name.localeCompare(b.name));
+  const el = document.getElementById('late-arrival-list');
+  if (!available.length) {
+    el.innerHTML = '<div style="color:var(--text-light);font-size:13px;padding:8px 0;">All active players are already in the game.</div>';
+  } else {
+    el.innerHTML = available.map(p =>
+      `<div class="player-check-row" style="cursor:pointer;" onclick="confirmAddLatePlayer(${p.id})">
+        <span style="font-weight:700;">${esc(p.name)}</span>
+        ${p.number?`<span style="font-size:12px;color:var(--text-light);">#${p.number}</span>`:''}
+      </div>`).join('');
+  }
+  openModal('modal-add-late');
+}
+
+async function confirmAddLatePlayer(pid) {
+  const live = liveGame();
+  if (!live) return;
+  const gLineup = lineups.filter(l => l.game_id === live.id);
+  const maxOrder = gLineup.reduce((m, l) => Math.max(m, l.batting_order || 0), 0);
+  await sb.from('sb_game_players').insert({game_id: live.id, player_id: pid});
+  await sb.from('sb_lineups').insert({game_id: live.id, player_id: pid, batting_order: maxOrder + 1, position: null});
+  closeModal('modal-add-late');
+  await loadData();
+  renderLiveGame();
+  showToast('Player added to lineup!');
 }
 
 function openEndGameModal(gameId) {
