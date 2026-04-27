@@ -844,7 +844,7 @@ function renderHomeTab() {
         right = `<span class="sched-score ${w?'win-score':l?'loss-score':''}">${g.our_score}–${g.opp_score}</span>`;
       } else if (g.status==='cancelled') right = `<span class="game-badge badge-cancelled">Cancelled</span>`;
       else right = `<span class="game-badge badge-${g.home_away}">${g.home_away}</span>`;
-      const startBtn = isAdmin && g.status === 'scheduled' && !liveGame()
+      const startBtn = (isAdmin || isCoach) && g.status === 'scheduled' && !liveGame()
         ? `<button class="btn btn-sm btn-live" style="flex-shrink:0;margin-left:6px;" onclick="event.stopPropagation();openStartLiveModal(${g.id})">▶ Start</button>`
         : '';
       html += `<div class="sched-row" onclick="openGameDetail(${g.id})">
@@ -911,7 +911,7 @@ function openGameDetail(gameId, fromScreen) {
   if (g.status === 'final') {
     actHtml = `<button class="btn btn-sm btn-outline" style="color:var(--blue);border-color:rgba(255,255,255,.4);" onclick="exportScorebookPrint(${g.id})">📋 Scorebook</button>`;
   }
-  if (isAdmin && g.status === 'live') {
+  if ((isAdmin || isCoach) && g.status === 'live') {
     actHtml += `<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;" onclick="openEndGameModal(${g.id})">End Game</button>`;
   }
   acts.innerHTML = actHtml;
@@ -1020,7 +1020,7 @@ function enterLiveGame() {
   document.getElementById('live-title').textContent = 'vs ' + live.opponent;
   document.getElementById('live-sub').textContent = fmtDate(live.game_date) + (live.game_time ? ' · ' + live.game_time : '') + ' · LIVE';
   const navRight = document.getElementById('live-nav-right');
-  if (isAdmin) {
+  if (isAdmin || isCoach) {
     navRight.innerHTML = `<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border:none;margin-right:6px;" onclick="refreshLive()">↻</button>
       <button class="btn btn-sm" style="background:rgba(255,255,255,.9);color:var(--live);border:none;font-weight:700;" onclick="openEndGameModal(${live.id})">End</button>`;
   } else {
