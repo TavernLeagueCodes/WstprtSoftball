@@ -119,6 +119,7 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;background:var(--b
 .ab-sf{border-color:#ffd54f;color:#f57f17;background:#fffde7;}.ab-sf.selected{background:#fff9c4;border-color:#f57f17;}
 .ab-fc{border-color:#90a4ae;color:#37474f;background:#f5f7f8;}.ab-fc.selected{background:#cfd8dc;border-color:#37474f;}
 .ab-out{border-color:#e0e0e0;color:#616161;background:white;}.ab-out.selected{background:#eeeeee;border-color:#616161;}
+.ab-e{border-color:#80cbc4;color:#00695c;background:#e0f2f1;}.ab-e.selected{background:#b2dfdb;border-color:#00695c;}
 .ab-result-label{font-size:11px;font-weight:400;opacity:.75;margin-top:2px;}
 
 /* RBI COUNTER */
@@ -413,7 +414,8 @@ body.dark .scorebook tfoot td{background:#151f2e;}
     <div class="fmt-hint"><strong>Required columns (header row):</strong><br>
       <code>Date</code> (YYYY-MM-DD), <code>Opponent</code>, <code>HomeAway</code>, <code>Location</code><br>
       Example: <code>2026-05-01,Tigers,home,Central Park</code><br>
-      Also accepts: <code>Date, Time, Opponent, HomeAway, Location</code> (5-column with game time)
+      Also accepts: <code>Date, Time, Opponent, HomeAway, Location</code> (5-column with game time)<br>
+      Optional: add a <code>Jersey</code> column at the end (e.g. <code>White top / Navy pants</code>)
     </div>
     <div id="schedule-preview" style="margin-top:12px;"></div>
     <button class="btn btn-primary" id="schedule-import-btn" style="display:none;" onclick="importSchedule()">Import Games</button>
@@ -450,6 +452,10 @@ body.dark .scorebook tfoot td{background:#151f2e;}
     <div class="form-group">
       <label class="form-label">Location (optional)</label>
       <input class="form-input" id="game-loc-inp" placeholder="Field name" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Jersey Combo (optional)</label>
+      <input class="form-input" id="game-jersey-inp" placeholder="e.g. White top / Navy pants" autocomplete="off">
     </div>
     <div class="form-group" id="status-row" style="display:none;">
       <label class="form-label">Status</label>
@@ -524,6 +530,53 @@ body.dark .scorebook tfoot td{background:#151f2e;}
   </div>
 </div>
 
+<!-- MODAL: Edit/Add At-Bat (Admin) -->
+<div class="modal-overlay" id="modal-edit-ab">
+  <div class="modal">
+    <div class="modal-title" id="modal-edit-ab-title">Edit At-Bat</div>
+    <div id="modal-edit-ab-player" style="font-size:15px;font-weight:700;margin-bottom:14px;color:var(--blue);"></div>
+    <div id="modal-edit-ab-player-sel" style="margin-bottom:14px;display:none;">
+      <label class="form-label">Player</label>
+      <select class="form-select" id="edit-ab-player-inp"></select>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Result</div>
+    <div class="ab-grid" id="edit-ab-result-grid">
+      <button class="ab-btn ab-1b" onclick="editAbSelectResult('single')">1B<div class="ab-result-label">Single</div></button>
+      <button class="ab-btn ab-2b" onclick="editAbSelectResult('double')">2B<div class="ab-result-label">Double</div></button>
+      <button class="ab-btn ab-3b" onclick="editAbSelectResult('triple')">3B<div class="ab-result-label">Triple</div></button>
+      <button class="ab-btn ab-hr" onclick="editAbSelectResult('hr')">HR<div class="ab-result-label">Home Run</div></button>
+      <button class="ab-btn ab-bb" onclick="editAbSelectResult('bb')">BB<div class="ab-result-label">Walk</div></button>
+      <button class="ab-btn ab-k" onclick="editAbSelectResult('k')">K<div class="ab-result-label">Strikeout</div></button>
+      <button class="ab-btn ab-sf" onclick="editAbSelectResult('sf')">SF<div class="ab-result-label">Sac Fly</div></button>
+      <button class="ab-btn ab-fc" onclick="editAbSelectResult('fc')">FC<div class="ab-result-label">Field. Choice</div></button>
+      <button class="ab-btn ab-e" onclick="editAbSelectResult('error')">E<div class="ab-result-label">Error</div></button>
+      <button class="ab-btn ab-out" onclick="editAbSelectResult('out')" style="grid-column:1/-1;">OUT<div class="ab-result-label">Out</div></button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+      <div style="flex:1;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">RBI</div>
+        <div class="rbi-counter" style="margin:0;">
+          <button class="rbi-btn rbi-minus" onclick="editAbAdjustRbi(-1)">−</button>
+          <div class="rbi-val" id="edit-ab-rbi-val">0</div>
+          <button class="rbi-btn rbi-plus" onclick="editAbAdjustRbi(1)">+</button>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Inning</div>
+        <select class="form-select" id="edit-ab-inning" style="text-align:center;padding:10px 8px;">
+          <option value="">—</option>
+          <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
+          <option value="4">4th</option><option value="5">5th</option><option value="6">6th</option>
+          <option value="7">7th</option>
+        </select>
+      </div>
+    </div>
+    <div id="edit-ab-error" style="color:var(--red);font-size:13px;margin-bottom:8px;display:none;"></div>
+    <button class="btn btn-primary" onclick="saveEditAtBat()">Save At-Bat</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-edit-ab')">Cancel</button>
+  </div>
+</div>
+
 <!-- MODAL: Settings -->
 <div class="modal-overlay" id="modal-settings">
   <div class="modal">
@@ -564,11 +617,12 @@ let _pendingRoster = [], _pendingSchedule = [];
 let _startLineup = [], _startBench = [];
 let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
+let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0;
 
 const POSITIONS   = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF','EH','DH'];
-const AB_RESULTS  = ['single','double','triple','hr','k','fc','out'];
-const RESULT_CODE = {single:'1B',double:'2B',triple:'3B',hr:'HR',bb:'BB',k:'K',sf:'SF',fc:'FC',out:'O'};
-const RESULT_FULL = {single:'Single',double:'Double',triple:'Triple',hr:'Home Run',bb:'Walk',k:'Strikeout',sf:'Sac Fly',fc:"Fielder's Choice",out:'Out'};
+const AB_RESULTS  = ['single','double','triple','hr','k','fc','out','error'];
+const RESULT_CODE = {single:'1B',double:'2B',triple:'3B',hr:'HR',bb:'BB',k:'K',sf:'SF',fc:'FC',out:'O',error:'E'};
+const RESULT_FULL = {single:'Single',double:'Double',triple:'Triple',hr:'Home Run',bb:'Walk',k:'Strikeout',sf:'Sac Fly',fc:"Fielder's Choice",out:'Out',error:'Reached on Error'};
 
 // ── Init ─────────────────────────────────────────────────────────
 async function init() {
@@ -828,6 +882,7 @@ function renderHomeTab() {
           <span class="game-badge badge-${nextGame.home_away}">${nextGame.home_away}</span>
         </div>
         <div style="font-size:13px;color:var(--text-light);">${fmtDate(nextGame.game_date)}${nextGame.game_time?' · '+esc(nextGame.game_time):''}${nextGame.location?' · 📍 '+esc(nextGame.location):''}</div>
+        ${nextGame.jersey?`<div style="font-size:13px;color:var(--text-light);margin-top:4px;">🎽 ${esc(nextGame.jersey)}</div>`:''}
         ${mySpot?`<div style="font-size:14px;font-weight:600;background:var(--blue-light);color:var(--blue);padding:8px 12px;border-radius:10px;margin-top:10px;">🏏 Batting #${mySpot.batting_order}${mySpot.position?' · '+mySpot.position:''}</div>`:''}
       </div>
     </div>`;
@@ -957,6 +1012,7 @@ function renderGameDetail(g) {
     <div style="font-size:13px;font-weight:700;color:${w?'var(--green)':l?'var(--red)':'var(--text-light)'};">${w?'Win':l?'Loss':'Tie'}</div>`;
   }
   if (g.location) html += `<div style="font-size:13px;color:var(--text-light);margin-top:8px;">📍 ${esc(g.location)}</div>`;
+  if (g.jersey)   html += `<div style="font-size:13px;color:var(--text-light);margin-top:4px;">🎽 ${esc(g.jersey)}</div>`;
   if (g.notes)    html += `<div style="font-size:13px;color:var(--text-light);margin-top:4px;">${esc(g.notes)}</div>`;
 
   if (g.status==='final') {
@@ -1007,23 +1063,27 @@ function renderGameDetail(g) {
         <td class="${avgClass(st.avg)}">${st.avg}</td></tr>`;
     });
     html += '</tbody></table></div></div>';
+  }
 
-    // Per-player at-bat log (admin can delete any; players only during live)
-    const live = g.status === 'live';
-    if (isAdmin || live) {
-      html += `<div class="section-card"><div class="section-header"><span class="sh-title">At-Bat Log</span></div><div style="padding:12px 16px;">`;
+  // At-bat log — admin can always view/edit/add; visible during live games too
+  const isLive = g.status === 'live';
+  if (isAdmin || isLive) {
+    html += `<div class="section-card"><div class="section-header"><span class="sh-title">At-Bat Log</span>${isAdmin?`<button class="btn btn-sm btn-outline" style="margin-left:auto;font-size:12px;padding:5px 12px;" onclick="openEditAtBatModal(null,${g.id})">+ Add</button>`:''}</div><div style="padding:12px 16px;">`;
+    if (gAbs.length) {
       gAbs.forEach(a => {
         const p = players.find(x=>x.id===a.player_id);
-        const canDel = isAdmin || live;
-        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f4f8;">
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f4f8;">
           <span style="flex:1;font-size:14px;font-weight:600;">${p?esc(p.name):'?'} — ${RESULT_FULL[a.result]||a.result}</span>
           ${a.rbi?`<span style="font-size:12px;font-weight:700;background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;">${a.rbi} RBI</span>`:''}
           ${a.inning?`<span style="font-size:12px;color:var(--text-light);">Inn ${a.inning}</span>`:''}
-          ${canDel?`<button style="background:#ffebee;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--red);" onclick="deleteAtBat(${a.id},${g.id})">✕</button>`:''}
+          ${isAdmin?`<button style="background:var(--blue-light);border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--blue);" onclick="openEditAtBatModal(${a.id},${g.id})">Edit</button>`:''}
+          <button style="background:#ffebee;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--red);" onclick="deleteAtBat(${a.id},${g.id})">✕</button>
         </div>`;
       });
-      html += '</div></div>';
+    } else {
+      html += `<div style="text-align:center;color:var(--text-light);font-size:13px;padding:12px 0;">No at-bats logged yet.</div>`;
     }
+    html += '</div></div>';
   }
 
   el.innerHTML = html;
@@ -1115,7 +1175,8 @@ function renderLiveGame() {
       <button class="ab-btn ab-k${sel==='k'?' selected':''}" onclick="liveSelectResult('k')">K<div class="ab-result-label">Strikeout</div></button>
       <button class="ab-btn ab-sf${sel==='sf'?' selected':''}" onclick="liveSelectResult('sf')">SF<div class="ab-result-label">Sac Fly</div></button>
       <button class="ab-btn ab-fc${sel==='fc'?' selected':''}" onclick="liveSelectResult('fc')">FC<div class="ab-result-label">Field. Choice</div></button>
-      <button class="ab-btn ab-out${sel==='out'?' selected':''}" onclick="liveSelectResult('out')">OUT<div class="ab-result-label">Out</div></button>
+      <button class="ab-btn ab-e${sel==='error'?' selected':''}" onclick="liveSelectResult('error')">E<div class="ab-result-label">Error</div></button>
+      <button class="ab-btn ab-out${sel==='out'?' selected':''}" onclick="liveSelectResult('out')" style="grid-column:1/-1;">OUT<div class="ab-result-label">Out</div></button>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
       <div style="flex:1;text-align:center;">
@@ -1166,6 +1227,7 @@ function renderLiveGame() {
       ${spot?.position?`<div class="lineup-pos">${esc(spot.position)}</div>`:''}
       ${isCur?`<span style="font-size:10px;font-weight:800;color:white;background:var(--live);padding:3px 8px;border-radius:10px;white-space:nowrap;">AT BAT</span>`:''}
       ${isDeck&&!isCur?`<span style="font-size:10px;font-weight:700;color:#f57f17;background:#fff8e1;border:1px solid #ffe082;padding:3px 8px;border-radius:10px;white-space:nowrap;">ON DECK</span>`:''}
+      ${(isAdmin||isCoach)?`<button style="background:none;border:none;color:var(--text-light);font-size:16px;cursor:pointer;padding:2px 6px;flex-shrink:0;line-height:1;" onclick="event.stopPropagation();removeLivePlayer(${pid})" title="Remove from lineup">✕</button>`:''}
     </div>`;
   });
   if (isAdmin || isCoach) {
@@ -1190,7 +1252,7 @@ function renderLiveGame() {
 function liveSelectResult(result) {
   liveSelectedResult = result;
   document.querySelectorAll('#live-content .ab-btn').forEach(b => b.classList.remove('selected'));
-  const classMap = {single:'ab-1b',double:'ab-2b',triple:'ab-3b',hr:'ab-hr',bb:'ab-bb',k:'ab-k',sf:'ab-sf',fc:'ab-fc',out:'ab-out'};
+  const classMap = {single:'ab-1b',double:'ab-2b',triple:'ab-3b',hr:'ab-hr',bb:'ab-bb',k:'ab-k',sf:'ab-sf',fc:'ab-fc',out:'ab-out',error:'ab-e'};
   document.querySelector('#live-content .'+classMap[result])?.classList.add('selected');
   const err = document.getElementById('live-ab-error');
   if (err) err.style.display = 'none';
@@ -1471,6 +1533,7 @@ function openGameModal(gid) {
   document.getElementById('game-time-inp').value = g ? (g.game_time||'') : '';
   document.getElementById('game-ha-inp').value = g ? g.home_away : 'home';
   document.getElementById('game-loc-inp').value = g ? (g.location||'') : '';
+  document.getElementById('game-jersey-inp').value = g ? (g.jersey||'') : '';
   document.getElementById('game-notes-inp').value = g ? (g.notes||'') : '';
   document.getElementById('game-our-inp').value = g ? (g.our_score??'') : '';
   document.getElementById('game-opp-score-inp').value = g ? (g.opp_score??'') : '';
@@ -1491,6 +1554,7 @@ async function saveGame() {
     game_time: document.getElementById('game-time-inp').value.trim() || null,
     home_away: document.getElementById('game-ha-inp').value,
     location: document.getElementById('game-loc-inp').value.trim() || null,
+    jersey: document.getElementById('game-jersey-inp').value.trim() || null,
     notes: document.getElementById('game-notes-inp').value.trim() || null,
     status: id ? document.getElementById('game-status-inp').value : 'scheduled',
     our_score: document.getElementById('game-our-inp').value !== '' ? parseInt(document.getElementById('game-our-inp').value) : null,
@@ -1528,6 +1592,7 @@ function normalizeScheduleRow(r) {
       opponent:  (vals[2] || '').trim(),
       home_away: (vals[3] || 'home').trim().toLowerCase() === 'home' ? 'home' : 'away',
       location:  (vals[4] || '').trim() || null,
+      jersey:    (vals[5] || '').trim() || null,
     };
   }
   return {
@@ -1536,6 +1601,7 @@ function normalizeScheduleRow(r) {
     opponent:  (r.opponent || '').trim(),
     home_away: (r.homeaway || r.home_away || 'home').trim().toLowerCase() === 'home' ? 'home' : 'away',
     location:  (r.location || '').trim() || null,
+    jersey:    (r.jersey || r.jerseycombo || r.jersey_combo || '').trim() || null,
   };
 }
 
@@ -1568,9 +1634,9 @@ async function importSchedule() {
   const rows = _pendingSchedule;
   let ok=0, fail=0;
   for (const r of rows) {
-    const {date, time, opponent, home_away, location} = normalizeScheduleRow(r);
+    const {date, time, opponent, home_away, location, jersey} = normalizeScheduleRow(r);
     if (!date || !opponent) { fail++; continue; }
-    const {error} = await sb.from('sb_games').insert({game_date:date,game_time:time||null,opponent,home_away,location,status:'scheduled'});
+    const {error} = await sb.from('sb_games').insert({game_date:date,game_time:time||null,opponent,home_away,location,jersey:jersey||null,status:'scheduled'});
     if (error) fail++; else ok++;
   }
   closeModal('modal-schedule-upload');
@@ -1988,6 +2054,139 @@ function exportScorebookPrint(gameId) {
   const w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
+}
+
+// ── Remove Player from Live Lineup ───────────────────────────────
+async function removeLivePlayer(pid) {
+  if (!confirm('Remove this player from the lineup?')) return;
+  const live = liveGame();
+  if (!live) return;
+
+  const gp = gamePlayers.filter(x => x.game_id === live.id).map(x => x.player_id);
+  const gl = lineups.filter(l => l.game_id === live.id).sort((a,b) => a.batting_order - b.batting_order);
+  const orderedIds = gl.length
+    ? [...gl.map(l => l.player_id), ...gp.filter(id => !gl.find(l => l.player_id === id))]
+    : gp;
+  const removedIdx = orderedIds.indexOf(pid);
+  const newSize = orderedIds.length - 1;
+
+  await sb.from('sb_game_players').delete().eq('game_id', live.id).eq('player_id', pid);
+  await sb.from('sb_lineups').delete().eq('game_id', live.id).eq('player_id', pid);
+
+  // Renumber remaining lineup entries
+  const remaining = gl.filter(l => l.player_id !== pid);
+  for (let i = 0; i < remaining.length; i++) {
+    await sb.from('sb_lineups').update({batting_order: i + 1}).eq('id', remaining[i].id);
+  }
+
+  // Adjust current batter index
+  if (newSize <= 0) {
+    liveCurrentBatterIdx = null;
+  } else if (liveCurrentBatterIdx !== null) {
+    if (removedIdx === liveCurrentBatterIdx) {
+      liveCurrentBatterIdx = liveCurrentBatterIdx % newSize;
+    } else if (removedIdx < liveCurrentBatterIdx) {
+      liveCurrentBatterIdx = (liveCurrentBatterIdx - 1) % newSize;
+    }
+  }
+
+  await loadData();
+  renderLiveGame();
+  showToast('Player removed from lineup');
+}
+
+// ── Edit / Add At-Bat (Admin) ─────────────────────────────────────
+function openEditAtBatModal(abId, gameId) {
+  editAbId = abId;
+  editAbGameId = gameId;
+  editAbSelectedResult = null;
+  editAbRbiCount = 0;
+
+  const playerDisp = document.getElementById('modal-edit-ab-player');
+  const playerSelDiv = document.getElementById('modal-edit-ab-player-sel');
+  document.getElementById('modal-edit-ab-title').textContent = abId ? 'Edit At-Bat' : 'Add At-Bat';
+  document.getElementById('edit-ab-error').style.display = 'none';
+
+  if (abId) {
+    const ab = atBats.find(x => x.id === abId);
+    const p = players.find(x => x.id === ab?.player_id);
+    playerDisp.textContent = p ? p.name + (p.number ? ' #' + p.number : '') : '?';
+    playerDisp.style.display = '';
+    playerSelDiv.style.display = 'none';
+    editAbSelectedResult = ab?.result || null;
+    editAbRbiCount = ab?.rbi || 0;
+    document.getElementById('edit-ab-inning').value = ab?.inning || '';
+  } else {
+    playerDisp.style.display = 'none';
+    playerSelDiv.style.display = '';
+    editAbRbiCount = 0;
+    document.getElementById('edit-ab-inning').value = '';
+    const gamePids = gamePlayers.filter(gp => gp.game_id === gameId).map(gp => gp.player_id);
+    const pool = gamePids.length
+      ? players.filter(p => p.active && gamePids.includes(p.id))
+      : players.filter(p => p.active);
+    document.getElementById('edit-ab-player-inp').innerHTML =
+      `<option value="">— select player —</option>` +
+      pool.sort((a,b) => a.name.localeCompare(b.name))
+          .map(p => `<option value="${p.id}">${esc(p.name)}${p.number ? ' #' + p.number : ''}</option>`)
+          .join('');
+  }
+
+  document.getElementById('edit-ab-rbi-val').textContent = editAbRbiCount;
+  updateEditAbResultButtons();
+  openModal('modal-edit-ab');
+}
+
+function updateEditAbResultButtons() {
+  const classMap = {single:'ab-1b',double:'ab-2b',triple:'ab-3b',hr:'ab-hr',bb:'ab-bb',k:'ab-k',sf:'ab-sf',fc:'ab-fc',out:'ab-out',error:'ab-e'};
+  document.querySelectorAll('#edit-ab-result-grid .ab-btn').forEach(b => b.classList.remove('selected'));
+  if (editAbSelectedResult && classMap[editAbSelectedResult]) {
+    document.querySelector('#edit-ab-result-grid .' + classMap[editAbSelectedResult])?.classList.add('selected');
+  }
+}
+
+function editAbSelectResult(result) {
+  editAbSelectedResult = result;
+  updateEditAbResultButtons();
+  document.getElementById('edit-ab-error').style.display = 'none';
+}
+
+function editAbAdjustRbi(delta) {
+  editAbRbiCount = Math.max(0, Math.min(10, editAbRbiCount + delta));
+  document.getElementById('edit-ab-rbi-val').textContent = editAbRbiCount;
+}
+
+async function saveEditAtBat() {
+  if (!editAbSelectedResult) {
+    const err = document.getElementById('edit-ab-error');
+    err.textContent = 'Select a result first';
+    err.style.display = '';
+    return;
+  }
+  const inning = document.getElementById('edit-ab-inning').value;
+  const data = { result: editAbSelectedResult, rbi: editAbRbiCount, inning: inning ? parseInt(inning) : null };
+
+  if (editAbId) {
+    const {error} = await sb.from('sb_at_bats').update(data).eq('id', editAbId);
+    if (error) { showToast('Error saving'); return; }
+    showToast('At-bat updated');
+  } else {
+    const pid = parseInt(document.getElementById('edit-ab-player-inp').value);
+    if (!pid) {
+      const err = document.getElementById('edit-ab-error');
+      err.textContent = 'Select a player first';
+      err.style.display = '';
+      return;
+    }
+    const {error} = await sb.from('sb_at_bats').insert({game_id: editAbGameId, player_id: pid, ...data});
+    if (error) { showToast('Error saving'); return; }
+    showToast('At-bat added');
+  }
+
+  closeModal('modal-edit-ab');
+  await loadData();
+  const g = games.find(x => x.id === editAbGameId);
+  if (g) renderGameDetail(g);
 }
 
 // ── CSV Parser ────────────────────────────────────────────────────
