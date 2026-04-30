@@ -2168,8 +2168,7 @@ async function saveEditAtBat() {
 
   if (editAbId) {
     const {error} = await sb.from('sb_at_bats').update(data).eq('id', editAbId);
-    if (error) { showToast('Error saving'); return; }
-    showToast('At-bat updated');
+    if (error) { showToast('Save failed: ' + error.message); return; }
   } else {
     const pid = parseInt(document.getElementById('edit-ab-player-inp').value);
     if (!pid) {
@@ -2179,13 +2178,13 @@ async function saveEditAtBat() {
       return;
     }
     const {error} = await sb.from('sb_at_bats').insert({game_id: editAbGameId, player_id: pid, ...data});
-    if (error) { showToast('Error saving'); return; }
-    showToast('At-bat added');
+    if (error) { showToast('Save failed: ' + error.message); return; }
   }
 
   closeModal('modal-edit-ab');
+  showToast(editAbId ? 'At-bat updated' : 'At-bat added');
   await loadData();
-  const g = games.find(x => x.id === editAbGameId);
+  const g = games.find(x => x.id === currentGameId);
   if (g) renderGameDetail(g);
 }
 
