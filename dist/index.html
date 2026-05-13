@@ -2152,6 +2152,7 @@ function exportScorebookPrint(gameId) {
   .bb{color:#01579b;}
   .k{color:#c62828;}
   .out{color:#616161;}
+  .scored-r{color:#2e7d32;font-size:8px;font-weight:800;vertical-align:super;}
   @media print{button{display:none;}body{margin:8px;}}
 </style></head><body>
 <button onclick="window.print()" style="margin-bottom:16px;padding:8px 20px;background:#0d47a1;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Print Scorebook</button>
@@ -2168,6 +2169,7 @@ function exportScorebookPrint(gameId) {
   <th class="stat-col">3B</th>
   <th class="stat-col">HR</th>
   <th class="stat-col">RBI</th>
+  <th class="stat-col">R</th>
   <th class="stat-col">BB</th>
   <th class="stat-col">K</th>
   <th class="stat-col">AVG</th>
@@ -2190,12 +2192,12 @@ function exportScorebookPrint(gameId) {
           if (code==='HR') cls='hr';
           if (code==='BB') cls='bb';
           if (code==='K')  cls='k';
-          return `<span class="${cls}">${code}${a.rbi?'<sub>'+a.rbi+'</sub>':''}</span>`;
+          return `<span class="${cls}">${code}${a.rbi?'<sub>'+a.rbi+'</sub>':''}${a.scored?'<span class="scored-r">R</span>':''}</span>`;
         }).join(' ');
         return `<td class="inn">${cells}</td>`;
       }).join('')}
       <td>${st.ab}</td><td>${st.h}</td><td>${st.d2}</td><td>${st.t3}</td><td>${st.hr}</td>
-      <td>${st.rbi}</td><td>${st.bb}</td><td>${st.k}</td>
+      <td>${st.rbi}</td><td>${st.runs}</td><td>${st.bb}</td><td>${st.k}</td>
       <td>${st.avg}</td>
     </tr>`;
   });
@@ -2205,11 +2207,11 @@ function exportScorebookPrint(gameId) {
   <td colspan="2">TOTALS</td>
   ${innings.map(()=>'<td></td>').join('')}
   <td>${totSt.ab}</td><td>${totSt.h}</td><td>${totSt.d2}</td><td>${totSt.t3}</td><td>${totSt.hr}</td>
-  <td>${totSt.rbi}</td><td>${totSt.bb}</td><td>${totSt.k}</td>
+  <td>${totSt.rbi}</td><td>${totSt.runs}</td><td>${totSt.bb}</td><td>${totSt.k}</td>
   <td>${totSt.avg}</td>
 </tr></tfoot>
 </table>
-<div style="font-size:11px;color:#999;margin-top:8px;">Legend: 1B Single · 2B Double · 3B Triple · HR Home Run · BB Walk · K Strikeout · SF Sac Fly · FC Fielder's Choice · O Out · RBI shown as subscript</div>
+<div style="font-size:11px;color:#999;margin-top:8px;">Legend: 1B Single · 2B Double · 3B Triple · HR Home Run · BB Walk · K Strikeout · SF Sac Fly · FC Fielder's Choice · O Out · RBI shown as subscript · <span style="color:#2e7d32;font-weight:700;">R</span> superscript = run scored</div>
 </body></html>`;
 
   const w = window.open('', '_blank');
