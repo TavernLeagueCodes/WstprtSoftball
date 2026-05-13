@@ -572,6 +572,12 @@ body.dark .scorebook tfoot td{background:#151f2e;}
         </select>
       </div>
     </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#e8f5e9;border-radius:10px;cursor:pointer;border:1.5px solid var(--border);">
+        <input type="checkbox" id="edit-ab-scored-cb" onchange="editAbScored=this.checked" style="width:20px;height:20px;cursor:pointer;flex-shrink:0;">
+        <span style="font-size:14px;font-weight:600;color:var(--green);">Player scored a run</span>
+      </label>
+    </div>
     <div id="edit-ab-error" style="color:var(--red);font-size:13px;margin-bottom:8px;display:none;"></div>
     <button class="btn btn-primary" onclick="saveEditAtBat()">Save At-Bat</button>
     <button class="btn btn-outline" onclick="closeModal('modal-edit-ab')">Cancel</button>
@@ -633,7 +639,7 @@ let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
 let liveRunnerOut = false, liveDoublePlay = false;
 let _whoScoredOnBase = [], _whoScoredMarked = new Set(), _whoScoredCallback = null;
-let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0;
+let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0, editAbScored = false;
 
 const POSITIONS   = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF','EH','DH'];
 const AB_RESULTS  = ['single','double','triple','hr','k','fc','out','error'];
@@ -1093,6 +1099,7 @@ function renderGameDetail(g) {
         const p = players.find(x=>x.id===a.player_id);
         html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f4f8;">
           <span style="flex:1;font-size:14px;font-weight:600;">${p?esc(p.name):'?'} — ${RESULT_FULL[a.result]||a.result}</span>
+          ${a.scored?`<span style="font-size:12px;font-weight:700;background:#e8f5e9;color:var(--green);padding:2px 8px;border-radius:10px;">R</span>`:''}
           ${a.rbi?`<span style="font-size:12px;font-weight:700;background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;">${a.rbi} RBI</span>`:''}
           ${a.inning?`<span style="font-size:12px;color:var(--text-light);">Inn ${a.inning}</span>`:''}
           ${isAdmin?`<button style="background:var(--blue-light);border:none;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--blue);" onclick="openEditAtBatModal(${a.id},${g.id})">Edit</button>`:''}
@@ -2269,12 +2276,16 @@ function openEditAtBatModal(abId, gameId) {
     playerSelDiv.style.display = 'none';
     editAbSelectedResult = ab?.result || null;
     editAbRbiCount = ab?.rbi || 0;
+    editAbScored = ab?.scored || false;
     document.getElementById('edit-ab-inning').value = ab?.inning || '';
+    document.getElementById('edit-ab-scored-cb').checked = editAbScored;
   } else {
     playerDisp.style.display = 'none';
     playerSelDiv.style.display = '';
     editAbRbiCount = 0;
+    editAbScored = false;
     document.getElementById('edit-ab-inning').value = '';
+    document.getElementById('edit-ab-scored-cb').checked = false;
     const gamePids = gamePlayers.filter(gp => gp.game_id === gameId).map(gp => gp.player_id);
     const pool = gamePids.length
       ? players.filter(p => p.active && gamePids.includes(p.id))
@@ -2318,7 +2329,7 @@ async function saveEditAtBat() {
     return;
   }
   const inning = document.getElementById('edit-ab-inning').value;
-  const data = { result: editAbSelectedResult, rbi: editAbRbiCount, inning: inning ? parseInt(inning) : null };
+  const data = { result: editAbSelectedResult, rbi: editAbRbiCount, inning: inning ? parseInt(inning) : null, scored: editAbScored };
 
   if (editAbId) {
     const {data: rows, error} = await sb.from('sb_at_bats').update(data).eq('id', editAbId).select();
