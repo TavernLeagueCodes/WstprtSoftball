@@ -1352,6 +1352,8 @@ async function saveLiveAtBat(playerId, gameId) {
 
   await loadData();
 
+  const ON_BASE = ['single','double','triple','bb','fc','error'];
+
   // Auto-advance inning at 3 outs
   if (innNum) {
     const outs = countInningOuts(gameId, innNum);
@@ -1359,15 +1361,29 @@ async function saveLiveAtBat(playerId, gameId) {
       const nextInning = innNum + 1;
       liveInning = String(nextInning);
       showToast(`3 outs — Inning ${nextInning}!`);
+      // SF as 3rd out: a runner may still have scored — ask before advancing
+      if (liveSelectedResult === 'sf') {
+        const onBase = atBats.filter(ab =>
+          ab.game_id === gameId &&
+          ON_BASE.includes(ab.result) &&
+          !ab.scored &&
+          ab.id !== newAbId &&
+          (!innNum || ab.inning === innNum)
+        );
+        if (onBase.length > 0) {
+          _whoScoredCallback = () => advanceBatter(gameId);
+          showWhoScoredModal(onBase, new Set());
+          return;
+        }
+      }
       advanceBatter(gameId);
       return;
     }
   }
 
-  // Show "Who scored?" for non-out results
-  const isOutResult = ['k', 'out', 'sf'].includes(liveSelectedResult);
+  // Show "Who scored?" for non-out results; SF is an out but a runner scores
+  const isOutResult = ['k', 'out'].includes(liveSelectedResult);
   if (!isOutResult) {
-    const ON_BASE = ['single','double','triple','bb','fc','error'];
     const onBase = atBats.filter(ab =>
       ab.game_id === gameId &&
       ON_BASE.includes(ab.result) &&
