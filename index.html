@@ -23,6 +23,9 @@
   --bg:#efe1bb;--white:#f6ecc8;--paper-dk:#d9c688;
   --text:#231a10;--text-light:#6b5839;
   --border:#231a10;--border-soft:#c4a86a;
+  --topps-blue:#3a5a8c;--topps-blue-dark:#2c4670;--topps-blue-tint:#dbe2ee;
+  --topps-mustard:#d4a02a;--topps-mustard-tint:#f7e5a6;
+  --ink-soft:#3a2f1f;
   --shadow:3px 3px 0 #231a10,4px 4px 14px rgba(0,0,0,.15);
   --shadow-sm:2px 2px 0 #231a10;
   --radius:4px;
@@ -58,7 +61,7 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 .pin-error{font-family:var(--font-display);color:var(--red);font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:12px;min-height:18px;}
 
 /* NAV */
-.top-nav{background:var(--blue);background-image:var(--halftone),linear-gradient(180deg,var(--blue),var(--blue-dark));color:var(--white);padding:12px 14px;display:flex;align-items:center;gap:10px;min-height:60px;border-bottom:3px solid var(--border);box-shadow:0 3px 0 var(--gold),0 6px 14px rgba(0,0,0,.18);position:relative;}
+.top-nav{background:var(--blue);background-image:var(--halftone),linear-gradient(180deg,var(--blue),var(--blue-dark));color:var(--white);padding:12px 14px;display:flex;align-items:center;gap:10px;min-height:60px;border-bottom:3px solid var(--border);box-shadow:0 3px 0 var(--topps-blue),0 6px 14px rgba(0,0,0,.18);position:relative;}
 .back-btn{background:var(--white);border:2px solid var(--border);color:var(--text);font-size:18px;cursor:pointer;padding:4px 10px;line-height:1;box-shadow:var(--shadow-sm);font-family:var(--font-display);}
 .nav-title{font-family:var(--font-script);font-size:24px;font-weight:400;line-height:.9;text-shadow:1.5px 1.5px 0 var(--border);}
 .nav-sub{font-family:var(--font-display);font-size:9px;letter-spacing:.14em;text-transform:uppercase;opacity:.92;margin-top:2px;color:var(--gold-light);}
@@ -81,10 +84,15 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 
 /* CARDS */
 .card{background:var(--white);border:3px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px;}
-.card-label{font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--blue);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;}
+.card-label{font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--topps-blue);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;}
 .section-card{background:var(--white);border:3px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
 .section-header{padding:8px 14px;background:var(--blue);background-image:var(--halftone),linear-gradient(180deg,var(--blue),var(--blue-dark));color:var(--white);display:flex;align-items:center;gap:8px;border-bottom:2px solid var(--border);}
 .sh-title{font-family:var(--font-display);font-size:11px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;color:var(--white);}
+.section-header.alt-blue{background:var(--topps-blue);background-image:var(--halftone),linear-gradient(180deg,var(--topps-blue),var(--topps-blue-dark));}
+.section-header.alt-gold{background:var(--topps-mustard);background-image:var(--halftone),linear-gradient(180deg,var(--topps-mustard),#a87f1f);color:var(--text);}
+.section-header.alt-gold .sh-title{color:var(--text);}
+.section-header.alt-ink{background:var(--text);background-image:var(--halftone),linear-gradient(180deg,var(--text),#0e0a05);}
+.section-header.alt-ink .sh-title{color:var(--topps-mustard);}
 
 /* BUTTONS */
 .btn{width:100%;padding:12px;border:2.5px solid var(--border);border-radius:3px;font-family:var(--font-display);font-size:13px;font-weight:400;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:var(--shadow-sm);transition:transform .08s;}
@@ -102,14 +110,14 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 .sched-row{display:flex;align-items:center;padding:10px 14px;border-bottom:2px dashed var(--border-soft);gap:10px;cursor:pointer;background:var(--white);}
 .sched-row:last-child{border-bottom:none;}
 .sched-row:active{background:var(--blue-light);}
-.sched-date-col{font-family:var(--font-display);font-size:13px;color:var(--blue-dark);width:62px;flex-shrink:0;line-height:1.1;letter-spacing:.02em;}
+.sched-date-col{font-family:var(--font-display);font-size:13px;color:var(--topps-blue-dark);width:62px;flex-shrink:0;line-height:1.1;letter-spacing:.02em;}
 .sched-opp{flex:1;font-family:var(--font-display);font-size:12px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:var(--text);}
 .sched-score{font-family:var(--font-display);font-size:13px;font-weight:400;letter-spacing:.02em;}
 
 /* BADGES */
 .game-badge{font-family:var(--font-display);font-size:9px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;padding:3px 8px;border:1.5px solid var(--border);border-radius:2px;white-space:nowrap;box-shadow:1.5px 1.5px 0 var(--border);}
 .badge-home{background:var(--green);color:var(--white);}
-.badge-away{background:var(--white);color:var(--text);}
+.badge-away{background:var(--topps-blue);color:var(--white);}
 .badge-final{background:var(--gold);color:var(--text);}
 .badge-cancelled{background:var(--paper-dk);color:var(--text-light);}
 .badge-live{background:var(--blue);color:var(--white);animation:pulse 1.2s infinite;}
@@ -128,7 +136,7 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 .stats-table td{padding:7px 8px;text-align:center;border:1px solid var(--paper-dk);background:var(--white);font-weight:700;}
 .stats-table td:first-child{text-align:left;font-family:var(--font-display);font-weight:400;color:var(--blue-dark);text-transform:uppercase;font-size:11px;letter-spacing:.02em;padding-left:10px;}
 .stats-table tr:nth-child(even) td{background:#f0e3b3;}
-.stats-table tr.my-row td{background:#fbe7a8;}
+.stats-table tr.my-row td{background:#fbe7a8;border-top:2px solid var(--topps-blue);border-bottom:2px solid var(--topps-blue);}
 .stats-table tr.my-row td:first-child{color:var(--text);}
 .avg-great{color:var(--green);font-family:var(--font-display);font-weight:400;}
 .avg-good{color:var(--green-dark);font-family:var(--font-display);font-weight:400;}
@@ -162,7 +170,7 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 .lineup-row:last-child{border-bottom:none;}
 .lineup-num{font-family:var(--font-display);font-size:14px;font-weight:400;color:var(--white);background:var(--blue);width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border);box-shadow:1.5px 1.5px 0 var(--border);flex-shrink:0;}
 .lineup-name{flex:1;font-family:var(--font-display);font-size:13px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:var(--text);}
-.lineup-pos{font-family:var(--font-display);font-size:10px;font-weight:400;letter-spacing:.1em;background:var(--gold);color:var(--text);padding:3px 8px;border:1.5px solid var(--border);box-shadow:1.5px 1.5px 0 var(--border);}
+.lineup-pos{font-family:var(--font-display);font-size:10px;font-weight:400;letter-spacing:.1em;background:var(--topps-blue);color:var(--white);padding:3px 8px;border:1.5px solid var(--border);box-shadow:1.5px 1.5px 0 var(--border);}
 
 /* LIVE GAME PLAYER CARDS */
 .live-player-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
@@ -171,13 +179,13 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 .lpc-num{font-family:var(--font-mono);font-size:10px;color:var(--text-light);margin-bottom:4px;}
 .lpc-name{font-family:var(--font-display);font-size:12px;font-weight:400;color:var(--text);letter-spacing:.02em;text-transform:uppercase;margin-bottom:6px;}
 .lpc-stats{font-family:var(--font-mono);font-size:12px;color:var(--text-light);}
-.lpc-avg{font-family:var(--font-display);font-size:16px;font-weight:400;color:var(--blue);}
-.lpc-order{font-family:var(--font-display);font-size:11px;font-weight:400;background:var(--blue);color:var(--white);width:22px;height:22px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
+.lpc-avg{font-family:var(--font-display);font-size:16px;font-weight:400;color:var(--topps-blue-dark);}
+.lpc-order{font-family:var(--font-display);font-size:11px;font-weight:400;background:var(--topps-blue);color:var(--white);width:22px;height:22px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
 
 /* ROSTER */
 .roster-row{display:flex;align-items:center;padding:10px 14px;border-bottom:2px dashed var(--border-soft);gap:10px;background:var(--white);}
 .roster-row:last-child{border-bottom:none;}
-.roster-num{font-family:var(--font-display);font-size:12px;font-weight:400;background:var(--blue);color:var(--white);width:30px;height:30px;border:1.5px solid var(--border);box-shadow:1.5px 1.5px 0 var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.roster-num{font-family:var(--font-display);font-size:12px;font-weight:400;background:var(--topps-blue);color:var(--white);width:30px;height:30px;border:1.5px solid var(--border);box-shadow:1.5px 1.5px 0 var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .roster-name{flex:1;font-family:var(--font-display);font-size:13px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:var(--text);}
 .roster-pin{font-family:var(--font-mono);font-size:12px;color:var(--text-light);letter-spacing:3px;}
 
@@ -256,7 +264,7 @@ body{font-family:var(--font-body);background:var(--paper-tex);background-attachm
 .empty-sub{font-family:var(--font-mono);font-size:12px;margin-top:6px;color:var(--text-light);}
 
 /* DARK MODE */
-body.dark{--bg:#1a1612;--white:#2a2218;--paper-dk:#3a2f1f;--text:#f4e4b8;--text-light:#a08a5a;--border:#f4e4b8;--border-soft:#5a4830;--blue:#d63040;--blue-dark:#a82030;--blue-light:#3a2a18;--green:#7aa548;--gold:#e8b840;--gold-light:#3a2f1a;--shadow:3px 3px 0 #f4e4b8,4px 4px 14px rgba(0,0,0,.5);--shadow-sm:2px 2px 0 #f4e4b8;--paper-tex:radial-gradient(circle at 20% 30%,rgba(244,228,184,.05) 0,transparent 30%),radial-gradient(circle at 80% 70%,rgba(244,228,184,.03) 0,transparent 35%),repeating-linear-gradient(45deg,rgba(244,228,184,.015) 0 2px,transparent 2px 4px),var(--bg);}
+body.dark{--bg:#1a1612;--white:#2a2218;--paper-dk:#3a2f1f;--text:#f4e4b8;--text-light:#a08a5a;--border:#f4e4b8;--border-soft:#5a4830;--blue:#d63040;--blue-dark:#a82030;--blue-light:#3a2a18;--green:#7aa548;--gold:#e8b840;--gold-light:#3a2f1a;--topps-blue:#7a9bd0;--topps-blue-dark:#5a7ab0;--topps-blue-tint:#2a3548;--topps-mustard:#e8b840;--topps-mustard-tint:#3a2f1a;--shadow:3px 3px 0 #f4e4b8,4px 4px 14px rgba(0,0,0,.5);--shadow-sm:2px 2px 0 #f4e4b8;--paper-tex:radial-gradient(circle at 20% 30%,rgba(244,228,184,.05) 0,transparent 30%),radial-gradient(circle at 80% 70%,rgba(244,228,184,.03) 0,transparent 35%),repeating-linear-gradient(45deg,rgba(244,228,184,.015) 0 2px,transparent 2px 4px),var(--bg);}
 body.dark .card,body.dark .section-card,body.dark .modal,body.dark .pin-key,body.dark .bottom-nav,body.dark .ab-btn,body.dark .live-player-card,body.dark .drop-zone,body.dark .pin-box,body.dark .roster-row,body.dark .lineup-row,body.dark .sched-row{background:var(--white);}
 body.dark .form-input,body.dark .form-select,body.dark .lineup-edit-sel,body.dark .lineup-edit-pos{background:var(--white);color:var(--text);border-color:var(--border);}
 body.dark .stats-table td,body.dark .scorebook td{background:var(--white);color:var(--text);border-color:var(--paper-dk);}
@@ -945,7 +953,7 @@ function renderHomeTab() {
     const st = calcStats(atBats.filter(a => a.player_id === currentPlayer.id));
     html += `<div class="card" style="margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-        <div style="width:48px;height:48px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;">${currentPlayer.number?'#'+currentPlayer.number:'⚾'}</div>
+        <div style="width:52px;height:52px;border-radius:0;background:var(--topps-blue);background-image:var(--halftone),linear-gradient(180deg,var(--topps-blue),var(--topps-blue-dark));color:var(--white);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;flex-shrink:0;border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);">${currentPlayer.number?'#'+currentPlayer.number:'⚾'}</div>
         <div style="flex:1;">
           <div style="font-size:17px;font-weight:800;">${esc(currentPlayer.name)}</div>
           <div style="font-size:12px;color:var(--text-light);">Season ${config.season||''}</div>
@@ -956,11 +964,11 @@ function renderHomeTab() {
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;">
-        <div style="background:var(--blue-light);border-radius:10px;padding:8px 4px;"><div style="font-size:20px;font-weight:800;color:var(--blue);">${st.ab}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">AB</div></div>
-        <div style="background:#f0e3b3;border-radius:10px;padding:8px 4px;"><div style="font-size:20px;font-weight:800;color:var(--green);">${st.h}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">H</div></div>
-        <div style="background:#fbedc4;border-radius:10px;padding:8px 4px;"><div style="font-size:20px;font-weight:800;color:#a8460e;">${st.hr}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">HR</div></div>
-        <div style="background:#f9e8a8;border-radius:10px;padding:8px 4px;"><div style="font-size:20px;font-weight:800;color:#8a1a26;">${st.rbi}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">RBI</div></div>
-        <div style="background:#f0e3b3;border-radius:10px;padding:8px 4px;"><div style="font-size:20px;font-weight:800;color:var(--green);">${st.runs}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">R</div></div>
+        <div style="background:var(--topps-blue-tint);border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:var(--topps-blue-dark);">${st.ab}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">AB</div></div>
+        <div style="background:#e3eed4;border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:var(--green-dark);">${st.h}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">H</div></div>
+        <div style="background:var(--topps-mustard-tint);border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:#a8460e;">${st.hr}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">HR</div></div>
+        <div style="background:#f4c2c2;border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:#8a1a26;">${st.rbi}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">RBI</div></div>
+        <div style="background:#e3eed4;border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:var(--green-dark);">${st.runs}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">R</div></div>
       </div>
     </div>`;
   }
@@ -975,7 +983,7 @@ function renderHomeTab() {
       <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Season Record</div>
       <div style="display:flex;justify-content:center;">
         <div style="flex:1;"><div style="font-size:32px;font-weight:800;color:var(--green);">${wins}</div><div style="font-size:12px;font-weight:700;color:var(--text-light);">Wins</div></div>
-        <div style="width:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="width:2px;background:var(--border);margin:4px 0;"></div>
         <div style="flex:1;"><div style="font-size:32px;font-weight:800;color:var(--red);">${losses}</div><div style="font-size:12px;font-weight:700;color:var(--text-light);">Losses</div></div>
         ${ties?`<div style="width:1px;background:var(--border);margin:4px 0;"></div><div style="flex:1;"><div style="font-size:32px;font-weight:800;">${ties}</div><div style="font-size:12px;font-weight:700;color:var(--text-light);">Ties</div></div>`:''}
       </div>
@@ -995,7 +1003,7 @@ function renderHomeTab() {
       <div class="section-header">
         <span style="font-size:15px;">📅</span>
         <span class="sh-title">Next Game</span>
-        <span style="margin-left:auto;font-size:12px;font-weight:700;color:var(--blue);">${daysLabel}</span>
+        <span style="margin-left:auto;font-family:var(--font-display);font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--topps-mustard);">${daysLabel}</span>
       </div>
       <div style="padding:16px;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
@@ -1004,7 +1012,7 @@ function renderHomeTab() {
         </div>
         <div style="font-size:13px;color:var(--text-light);">${fmtDate(nextGame.game_date)}${nextGame.game_time?' · '+esc(nextGame.game_time):''}${nextGame.location?' · 📍 '+esc(nextGame.location):''}</div>
         ${nextGame.jersey?`<div style="font-size:13px;color:var(--text-light);margin-top:4px;">🎽 ${esc(nextGame.jersey)}</div>`:''}
-        ${mySpot?`<div style="font-size:14px;font-weight:600;background:var(--blue-light);color:var(--blue);padding:8px 12px;border-radius:10px;margin-top:10px;">🏏 Batting #${mySpot.batting_order}${mySpot.position?' · '+mySpot.position:''}</div>`:''}
+        ${mySpot?`<div style="font-family:var(--font-display);font-size:13px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;background:var(--topps-blue);color:var(--white);padding:8px 12px;border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);margin-top:10px;">🏏 Batting #${mySpot.batting_order}${mySpot.position?' · '+mySpot.position:''}</div>`:''}
       </div>
     </div>`;
   }
@@ -1180,7 +1188,7 @@ function renderGameDetail(g) {
       const st = calcStats(pAbs);
       const me = currentPlayer && p.id===currentPlayer.id;
       html += `<tr class="${me?'my-row':''}"><td>${esc(p.name)}</td>
-        <td>${st.ab}</td><td>${st.h}</td><td>${st.hr}</td><td>${st.rbi}</td><td>${st.runs}</td><td>${st.bb}</td><td>${st.k}</td>
+        <td>${st.ab}</td><td>${st.h}</td><td>${st.hr}</td><td class="stat-col">${st.rbi}</td><td class="stat-col">${st.runs}</td><td class="stat-col">${st.bb}</td><td class="stat-col">${st.k}</td>
         <td class="${avgClass(st.avg)}">${st.avg}</td></tr>`;
     });
     html += '</tbody></table></div></div>';
@@ -1287,7 +1295,7 @@ function renderLiveGame() {
   html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;">
     <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><div class="live-dot"></div>AT BAT</div>
     <div style="display:flex;align-items:center;gap:14px;">
-      <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;flex-shrink:0;">${cb?.number?'#'+cb.number:'?'}</div>
+      <div style="width:52px;height:52px;border-radius:0;background:var(--topps-mustard);color:var(--text);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:19px;flex-shrink:0;border:2px solid var(--white);box-shadow:2px 2px 0 var(--border);">${cb?.number?'#'+cb.number:'?'}</div>
       <div>
         <div style="font-size:22px;font-weight:800;line-height:1.1;">${esc(cb?.name||'—')}</div>
         <div style="font-size:13px;opacity:.85;margin-top:3px;">${cbSpot?'Batting #'+cbSpot.batting_order:'Spot '+(curIdx+1)} &nbsp;·&nbsp; Today: ${cbSt.h}-${cbSt.ab}${cbSt.rbi?', '+cbSt.rbi+' RBI':''}${cbSt.bb?', '+cbSt.bb+' BB':''}${cbSt.runs?', '+cbSt.runs+' R':''}</div>
@@ -1305,11 +1313,11 @@ function renderLiveGame() {
 
   // Inning & outs strip
   html += `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--white);border-radius:var(--radius);padding:10px 18px;margin-bottom:12px;box-shadow:var(--shadow);">
-    <div><div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;">Inning</div><div style="font-size:22px;font-weight:800;">${liveInning||'—'}</div></div>
+    <div><div style="font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--topps-mustard);letter-spacing:.14em;text-transform:uppercase;">Inning</div><div style="font-family:var(--font-display);font-size:22px;font-weight:400;color:var(--white);">${liveInning||'—'}</div></div>
     <div style="display:flex;gap:8px;align-items:center;">
       ${[0,1,2].map(i => '<div style="width:14px;height:14px;border-radius:50%;background:' + (currentOuts>i?'var(--red)':'var(--border)') + ';"></div>').join('')}
     </div>
-    <div style="text-align:right;"><div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;">Out${currentOuts!==1?'s':''}</div><div style="font-size:22px;font-weight:800;">${currentOuts}</div></div>
+    <div style="text-align:right;"><div style="font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--topps-mustard);letter-spacing:.14em;text-transform:uppercase;">Out${currentOuts!==1?'s':''}</div><div style="font-family:var(--font-display);font-size:22px;font-weight:400;color:var(--white);">${currentOuts}</div></div>
   </div>`;
 
   // At-bat logging card
@@ -2313,6 +2321,13 @@ function exportScorebookPrint(gameId) {
   .k{color:#8a1a26;font-family:'Alfa Slab One',serif;font-weight:400;}
   .out{color:#6b5839;font-family:'Alfa Slab One',serif;font-weight:400;}
   .scored-r{color:#4a7a3a;font-size:9px;font-weight:800;vertical-align:super;font-family:'Alfa Slab One',serif;}
+  /* Position column gets the Topps blue chip treatment */
+  td.pos-cell{background:#3a5a8c;color:#f6ecc8;font-family:'Alfa Slab One',serif;font-weight:400;letter-spacing:.06em;text-transform:uppercase;font-size:10px;}
+  /* Stat totals (AB / H / RBI etc.) — last block of columns use mustard tint */
+  td.stat-col{background:#fbedc4;}
+  td.stat-col.avg{background:#d4a02a;color:#231a10;font-family:'Alfa Slab One',serif;font-weight:400;font-size:12px;}
+  /* Subtle mustard rule between batting-order rows */
+  tbody tr{border-bottom:1px dashed #c4a86a;}
   @media print{button{display:none;}body{margin:8px;}}
 </style></head><body>
 <button onclick="window.print()" style="margin-bottom:16px;padding:9px 22px;background:#b22030;color:#f6ecc8;border:2.5px solid #231a10;border-radius:3px;font-family:'Alfa Slab One',serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;box-shadow:2px 2px 0 #231a10;">🖨️ Print Scorebook</button>
@@ -2342,7 +2357,7 @@ function exportScorebookPrint(gameId) {
     const name = p ? esc(p.name) : '?';
     html += `<tr>
       <td>${orderNum}${name}</td>
-      <td>${posStr}</td>
+      <td class="pos-cell">${posStr}</td>
       ${innings.map(i => {
         const abs = byCells[i] || [];
         const cells = abs.map(a => {
@@ -2356,9 +2371,9 @@ function exportScorebookPrint(gameId) {
         }).join(' ');
         return `<td class="inn">${cells}</td>`;
       }).join('')}
-      <td>${st.ab}</td><td>${st.h}</td><td>${st.d2}</td><td>${st.t3}</td><td>${st.hr}</td>
-      <td>${st.rbi}</td><td>${st.runs}</td><td>${st.bb}</td><td>${st.k}</td>
-      <td>${st.avg}</td>
+      <td class="stat-col">${st.ab}</td><td class="stat-col">${st.h}</td><td class="stat-col">${st.d2}</td><td class="stat-col">${st.t3}</td><td class="stat-col">${st.hr}</td>
+      <td class="stat-col">${st.rbi}</td><td class="stat-col">${st.runs}</td><td class="stat-col">${st.bb}</td><td class="stat-col">${st.k}</td>
+      <td class="stat-col avg">${st.avg}</td>
     </tr>`;
   });
 
@@ -2366,9 +2381,9 @@ function exportScorebookPrint(gameId) {
 <tfoot><tr>
   <td colspan="2">TOTALS</td>
   ${innings.map(()=>'<td></td>').join('')}
-  <td>${totSt.ab}</td><td>${totSt.h}</td><td>${totSt.d2}</td><td>${totSt.t3}</td><td>${totSt.hr}</td>
-  <td>${totSt.rbi}</td><td>${totSt.runs}</td><td>${totSt.bb}</td><td>${totSt.k}</td>
-  <td>${totSt.avg}</td>
+  <td class="stat-col">${totSt.ab}</td><td class="stat-col">${totSt.h}</td><td class="stat-col">${totSt.d2}</td><td class="stat-col">${totSt.t3}</td><td class="stat-col">${totSt.hr}</td>
+  <td class="stat-col">${totSt.rbi}</td><td class="stat-col">${totSt.runs}</td><td class="stat-col">${totSt.bb}</td><td class="stat-col">${totSt.k}</td>
+  <td class="stat-col avg">${totSt.avg}</td>
 </tr></tfoot>
 </table>
 <div style="font-size:11px;color:#6b5839;margin-top:8px;">Legend: 1B Single · 2B Double · 3B Triple · HR Home Run · BB Walk · K Strikeout · SF Sac Fly · FC Fielder's Choice · O Out · RBI shown as subscript · <span style="color:#4a7a3a;font-weight:700;">R</span> superscript = run scored</div>
@@ -2715,11 +2730,11 @@ function renderViewerContent() {
 
   // Inning & outs
   html += `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--white);border-radius:var(--radius);padding:10px 18px;margin-bottom:12px;box-shadow:var(--shadow);">
-    <div><div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;">Inning</div><div style="font-size:22px;font-weight:800;">${curInning}</div></div>
+    <div><div style="font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--topps-mustard);letter-spacing:.14em;text-transform:uppercase;">Inning</div><div style="font-family:var(--font-display);font-size:22px;font-weight:400;color:var(--white);">${curInning}</div></div>
     <div style="display:flex;gap:8px;align-items:center;">
       ${[0,1,2].map(i => '<div style="width:14px;height:14px;border-radius:50%;background:' + (curOuts>i?'var(--red)':'var(--border)') + ';"></div>').join('')}
     </div>
-    <div style="text-align:right;"><div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;">Out${curOuts!==1?'s':''}</div><div style="font-size:22px;font-weight:800;">${curOuts}</div></div>
+    <div style="text-align:right;"><div style="font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--topps-mustard);letter-spacing:.14em;text-transform:uppercase;">Out${curOuts!==1?'s':''}</div><div style="font-family:var(--font-display);font-size:22px;font-weight:400;color:var(--white);">${curOuts}</div></div>
   </div>`;
 
   // Current batter
@@ -2738,7 +2753,7 @@ function renderViewerContent() {
 
   // On deck
   if (nb && ordered.length > 1 && nb.id !== (cb?.id)) {
-    html += `<div style="background:var(--gold-light);border:1px solid #231a10;border-radius:var(--radius);padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+    html += `<div style="background:var(--topps-mustard);border:2.5px solid var(--border);box-shadow:var(--shadow-sm);padding:8px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
       <span style="font-size:10px;font-weight:800;color:#8a6300;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">ON DECK</span>
       <span style="font-size:16px;font-weight:700;">${esc(nb.name)}${nb.number?' #'+nb.number:''}</span>
     </div>`;
