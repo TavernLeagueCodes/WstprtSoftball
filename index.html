@@ -1818,8 +1818,10 @@ async function saveGame() {
     our_score: document.getElementById('game-our-inp').value !== '' ? parseInt(document.getElementById('game-our-inp').value) : null,
     opp_score: document.getElementById('game-opp-score-inp').value !== '' ? parseInt(document.getElementById('game-opp-score-inp').value) : null,
   };
-  if (id) { await sb.from('sb_games').update(data).eq('id',parseInt(id)); }
-  else     { await sb.from('sb_games').insert(data); }
+  let error;
+  if (id) { ({ error } = await sb.from('sb_games').update(data).eq('id',parseInt(id))); }
+  else     { ({ error } = await sb.from('sb_games').insert(data)); }
+  if (error) { showToast('Save failed: ' + error.message); return; }
   closeModal('modal-game');
   await loadData(); renderAdminSchedule(); showToast('Game saved');
 }
