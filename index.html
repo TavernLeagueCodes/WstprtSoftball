@@ -932,88 +932,155 @@ function renderHomeTab() {
   const live = liveGame();
   let html = '';
 
-  // Live game banner (top priority)
+  // Live game banner (top priority) — Topps trading card with ink-black scoreboard body
   if (live) {
-    html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;" onclick="enterLiveGame()">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <div class="live-dot"></div>
-        <span style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;">Live Now</span>
+    const liveAbs = atBats.filter(a => a.game_id === live.id);
+    const ourRuns = liveAbs.filter(a => a.scored).length;
+    let oppRuns = 0;
+    if (live.opp_inning_scores) {
+      try { oppRuns = Object.values(JSON.parse(live.opp_inning_scores)).reduce((s,v)=>s+(parseInt(v)||0),0); } catch(e) {}
+    }
+    const innAbs = liveAbs.filter(a => a.inning);
+    const liveInn = innAbs.length ? Math.max(...innAbs.map(a=>a.inning)) : 1;
+    const leadLabel = ourRuns > oppRuns ? 'MINUTEMEN LEAD' : ourRuns < oppRuns ? 'TRAILING' : 'TIED';
+    html += `<div class="card" style="padding:0;overflow:hidden;cursor:pointer;box-shadow:3px 3px 0 var(--border),6px 6px 0 var(--topps-mustard),9px 9px 18px rgba(0,0,0,.2);" onclick="enterLiveGame()">
+      <div class="section-header" style="padding:8px 14px;">
+        <span style="display:flex;align-items:center;gap:6px;"><span class="live-dot"></span><span class="sh-title">Live Now · Inning ${liveInn}</span></span>
+        <span style="margin-left:auto;font-family:var(--font-display);font-size:10px;letter-spacing:.14em;color:var(--gold-light);text-transform:uppercase;">· vs ${esc(live.opponent)} ·</span>
       </div>
-      <div style="font-size:20px;font-weight:800;margin-bottom:4px;">vs ${esc(live.opponent)}</div>
-      <div style="font-size:13px;opacity:.9;margin-bottom:12px;">${fmtDate(live.game_date)}${live.game_time?' · '+esc(live.game_time):''} · ${live.home_away}${live.location?' · '+esc(live.location):''}</div>
-      <div style="background:rgba(255,255,255,.2);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;text-align:center;">⚾ Enter Live Game — Log Stats</div>
-    </div>
-    <div style="margin-bottom:14px;">
-      <button class="btn btn-outline" style="margin-bottom:0;" onclick="window.open(window.location.origin+window.location.pathname+'?viewer=1','_blank')">📡 Follow Along</button>
+      <div style="padding:14px 16px;background:var(--text);color:var(--white);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-family:var(--font-script);font-size:24px;color:var(--topps-mustard);line-height:.9;">vs the</div>
+            <div style="font-family:var(--font-display);font-size:22px;color:var(--white);line-height:.95;margin-top:2px;letter-spacing:.02em;text-transform:uppercase;">${esc(live.opponent)}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:var(--font-display);font-size:42px;line-height:.9;color:var(--white);">${ourRuns}–${oppRuns}</div>
+            <div style="font-family:var(--font-display);font-size:9px;letter-spacing:.18em;color:var(--topps-mustard);margin-top:4px;">${leadLabel}</div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:10px 14px 12px;background:var(--white);">
+        <button class="btn btn-primary" style="margin-bottom:8px;">⚾ Enter Live Game · Log Stats</button>
+        <button class="btn btn-outline" style="font-size:10px;" onclick="event.stopPropagation();window.open(window.location.origin+window.location.pathname+'?viewer=1','_blank')">📡 Follow Along · Read-Only</button>
+      </div>
     </div>`;
   }
 
-  // Player personal stats card
+  // Player personal stats card — Topps trading card: blue photo panel + cream nameplate side
   if (currentPlayer) {
     const st = calcStats(atBats.filter(a => a.player_id === currentPlayer.id));
-    html += `<div class="card" style="margin-bottom:14px;">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-        <div style="width:52px;height:52px;border-radius:0;background:var(--topps-blue);background-image:var(--halftone),linear-gradient(180deg,var(--topps-blue),var(--topps-blue-dark));color:var(--white);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;flex-shrink:0;border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);">${currentPlayer.number?'#'+currentPlayer.number:'⚾'}</div>
-        <div style="flex:1;">
-          <div style="font-size:17px;font-weight:800;">${esc(currentPlayer.name)}</div>
-          <div style="font-size:12px;color:var(--text-light);">Season ${config.season||''}</div>
+    const firstName = (currentPlayer.name||'').split(' ')[0];
+    html += `<div class="card" style="padding:0;overflow:hidden;">
+      <div class="section-header">
+        <span class="sh-title">My Card · ${esc(config.season||'')}</span>
+        <span style="margin-left:auto;font-family:var(--font-display);font-size:10px;letter-spacing:.14em;color:var(--gold-light);text-transform:uppercase;">No. ${esc(String(currentPlayer.number||'—'))}</span>
+      </div>
+      <div style="display:flex;">
+        <!-- LEFT: Topps blue photo panel -->
+        <div style="width:106px;flex-shrink:0;background:var(--topps-blue);background-image:var(--halftone),linear-gradient(180deg,var(--topps-blue),var(--topps-blue-dark));color:var(--white);display:flex;align-items:flex-end;justify-content:center;font-family:var(--font-display);font-size:50px;line-height:.85;padding:14px 0 12px;position:relative;border-right:2px solid var(--border);">
+          <div style="position:absolute;top:10px;left:0;right:0;text-align:center;font-family:var(--font-script);font-size:18px;color:var(--white);line-height:.85;">${esc(firstName)}</div>
+          ${currentPlayer.number?'#'+esc(String(currentPlayer.number)):'⚾'}
+          <div style="position:absolute;inset:6px;border:1.5px dashed rgba(255,255,255,.25);pointer-events:none;"></div>
         </div>
-        <div style="text-align:right;">
-          <div class="${avgClass(st.avg)}" style="font-size:26px;font-weight:800;">${st.avg}</div>
-          <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.06em;">AVG</div>
+        <!-- RIGHT: cream nameplate side -->
+        <div style="flex:1;padding:12px 14px;background:var(--white);background-image:repeating-linear-gradient(0deg,rgba(120,80,30,.03) 0 2px,transparent 2px 4px);display:flex;flex-direction:column;justify-content:center;min-width:0;">
+          <div style="background:var(--blue);color:var(--white);padding:4px 10px;display:inline-block;align-self:flex-start;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-display);font-size:14px;letter-spacing:.02em;text-transform:uppercase;border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);margin-bottom:6px;line-height:1.1;">${esc(currentPlayer.name)}</div>
+          <div style="font-family:var(--font-script);font-size:20px;color:var(--topps-blue-dark);line-height:.9;">${esc(config.team_name||'MinuteMen')}</div>
+          <div style="display:flex;align-items:baseline;gap:6px;margin-top:10px;">
+            <span class="${avgClass(st.avg)}" style="font-family:var(--font-display);font-size:30px;line-height:1;">${st.avg}</span>
+            <span style="font-family:var(--font-display);font-size:9px;letter-spacing:.16em;color:var(--text-light);text-transform:uppercase;">Avg</span>
+          </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;">
-        <div style="background:var(--topps-blue-tint);border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:var(--topps-blue-dark);">${st.ab}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">AB</div></div>
-        <div style="background:#e3eed4;border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:var(--green-dark);">${st.h}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">H</div></div>
-        <div style="background:var(--topps-mustard-tint);border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:#a8460e;">${st.hr}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">HR</div></div>
-        <div style="background:#f4c2c2;border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:#8a1a26;">${st.rbi}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">RBI</div></div>
-        <div style="background:#e3eed4;border:1.5px solid var(--border);border-radius:3px;padding:8px 4px;box-shadow:1.5px 1.5px 0 var(--border);"><div style="font-family:var(--font-display);font-size:20px;font-weight:400;color:var(--green-dark);">${st.runs}</div><div style="font-size:10px;color:var(--text-light);text-transform:uppercase;">R</div></div>
+      <!-- BOTTOM stat strip — 5 columns -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);background:var(--blue-light);border-top:2px solid var(--border);">
+        ${[['AB',st.ab,'var(--text)'],['H',st.h,'var(--green-dark)'],['HR',st.hr,'#a8460e'],['RBI',st.rbi,'var(--blue-dark)'],['R',st.runs,'var(--green-dark)']].map((c,i)=>'<div style="padding:9px 0;text-align:center;'+(i<4?'border-right:1.5px solid var(--paper-dk);':'')+'"><div style="font-family:var(--font-display);font-size:20px;line-height:1;color:'+c[2]+';">'+c[1]+'</div><div style="font-family:var(--font-display);font-size:8.5px;letter-spacing:.16em;color:var(--text-light);margin-top:4px;text-transform:uppercase;">'+c[0]+'</div></div>').join('')}
       </div>
     </div>`;
   }
 
-  // Season record
+  // Season record — ink-black scoreboard panel with stadium W-L numbers + form ribbon
   const finalGames = games.filter(g => g.status === 'final' && g.our_score != null);
   if (finalGames.length) {
-    const wins   = finalGames.filter(g => g.our_score > g.opp_score).length;
-    const losses = finalGames.filter(g => g.our_score < g.opp_score).length;
-    const ties   = finalGames.filter(g => g.our_score === g.opp_score).length;
-    html += `<div class="card" style="text-align:center;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Season Record</div>
-      <div style="display:flex;justify-content:center;">
-        <div style="flex:1;"><div style="font-size:32px;font-weight:800;color:var(--green);">${wins}</div><div style="font-size:12px;font-weight:700;color:var(--text-light);">Wins</div></div>
-        <div style="width:2px;background:var(--border);margin:4px 0;"></div>
-        <div style="flex:1;"><div style="font-size:32px;font-weight:800;color:var(--red);">${losses}</div><div style="font-size:12px;font-weight:700;color:var(--text-light);">Losses</div></div>
-        ${ties?`<div style="width:1px;background:var(--border);margin:4px 0;"></div><div style="flex:1;"><div style="font-size:32px;font-weight:800;">${ties}</div><div style="font-size:12px;font-weight:700;color:var(--text-light);">Ties</div></div>`:''}
+    const sortedFinals = [...finalGames].sort((a,b)=>a.game_date.localeCompare(b.game_date));
+    const wins   = sortedFinals.filter(g => g.our_score > g.opp_score).length;
+    const losses = sortedFinals.filter(g => g.our_score < g.opp_score).length;
+    const ties   = sortedFinals.filter(g => g.our_score === g.opp_score).length;
+    const winPct = sortedFinals.length ? wins / sortedFinals.length : 0;
+    const pctStr = '.' + Math.round(winPct*1000).toString().padStart(3,'0');
+    const formChips = sortedFinals.slice(-10).map(g => {
+      const w = g.our_score > g.opp_score, l = g.our_score < g.opp_score;
+      const lbl = w?'W':l?'L':'T';
+      const bg = w?'var(--green)':l?'var(--blue)':'var(--text-light)';
+      return '<span title="'+esc(g.opponent)+' '+g.our_score+'-'+g.opp_score+'" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:'+bg+';color:var(--white);font-family:var(--font-display);font-size:11px;border:1.5px solid var(--white);box-shadow:1.5px 1.5px 0 rgba(0,0,0,.4);clip-path:polygon(0 0,100% 0,calc(100% - 4px) 50%,100% 100%,0 100%);">'+lbl+'</span>';
+    }).join('');
+    html += `<div class="card" style="padding:0;overflow:hidden;">
+      <div class="section-header alt-gold">
+        <span class="sh-title">Season Pennant</span>
+        <span style="margin-left:auto;font-family:var(--font-display);font-size:10px;letter-spacing:.14em;color:var(--text);text-transform:uppercase;">${sortedFinals.length} Game${sortedFinals.length!==1?'s':''} Played</span>
+      </div>
+      <!-- Scoreboard panel -->
+      <div style="background:var(--text);background-image:var(--halftone),linear-gradient(180deg,#1a1208,var(--text));padding:18px 16px;color:var(--white);">
+        <div style="display:flex;align-items:flex-end;justify-content:space-around;gap:12px;">
+          <div style="text-align:center;flex:1;">
+            <div style="font-family:var(--font-display);font-size:48px;line-height:.9;color:#7bc36b;text-shadow:2px 2px 0 #2f5024;">${wins}</div>
+            <div style="font-family:var(--font-display);font-size:9px;letter-spacing:.2em;color:var(--topps-mustard);margin-top:4px;text-transform:uppercase;">Wins</div>
+          </div>
+          <div style="font-family:var(--font-script);font-size:36px;color:var(--topps-mustard);line-height:.9;padding-bottom:6px;">vs</div>
+          <div style="text-align:center;flex:1;">
+            <div style="font-family:var(--font-display);font-size:48px;line-height:.9;color:#e67280;text-shadow:2px 2px 0 #6a1c24;">${losses}</div>
+            <div style="font-family:var(--font-display);font-size:9px;letter-spacing:.2em;color:var(--topps-mustard);margin-top:4px;text-transform:uppercase;">Losses</div>
+          </div>
+          ${ties?('<div style="font-family:var(--font-script);font-size:28px;color:var(--topps-mustard);line-height:.9;padding-bottom:6px;">·</div><div style="text-align:center;flex:1;"><div style="font-family:var(--font-display);font-size:48px;line-height:.9;color:var(--white);">'+ties+'</div><div style="font-family:var(--font-display);font-size:9px;letter-spacing:.2em;color:var(--topps-mustard);margin-top:4px;text-transform:uppercase;">Ties</div></div>'):''}
+        </div>
+        <!-- Win% pill -->
+        <div style="text-align:center;margin-top:14px;">
+          <span style="display:inline-block;background:var(--topps-mustard);color:var(--text);padding:4px 18px;font-family:var(--font-display);font-size:13px;letter-spacing:.04em;border:1.5px solid var(--gold-light);box-shadow:2px 2px 0 rgba(0,0,0,.4);">${pctStr} · WIN PCT</span>
+        </div>
+      </div>
+      <!-- Form ribbon -->
+      <div style="background:var(--text);padding:8px 14px 12px;border-top:1.5px dashed var(--ink-soft);display:flex;align-items:center;gap:10px;">
+        <span style="font-family:var(--font-display);font-size:8px;letter-spacing:.18em;color:var(--topps-mustard);text-transform:uppercase;white-space:nowrap;">Last ${Math.min(sortedFinals.length,10)} »</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">${formChips}</div>
       </div>
     </div>`;
   }
 
-  // Next scheduled game
+  // Next scheduled game — ticket stub with mustard date block + Yesteryear opponent
   const upcoming = games.filter(g => g.status==='scheduled' && g.game_date >= today)
                         .sort((a,b) => a.game_date.localeCompare(b.game_date));
   const nextGame = upcoming[0] || null;
   if (nextGame) {
     const daysUntil = -daysDiff(nextGame.game_date);
-    const daysLabel = daysUntil === 0 ? '🔥 Today!' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`;
+    const daysLabel = daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow' : 'In '+daysUntil+' Days';
     const lineup4Game = lineups.filter(l => l.game_id === nextGame.id);
     const mySpot = currentPlayer ? lineup4Game.find(l => l.player_id === currentPlayer.id) : null;
-    html += `<div class="section-card" style="cursor:pointer;" onclick="openGameDetail(${nextGame.id})">
+    const dt = new Date(nextGame.game_date + 'T12:00:00');
+    const dMon = dt.toLocaleDateString('en-US',{month:'short'}).toUpperCase();
+    const dDay = dt.getDate();
+    const dDow = dt.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
+    html += `<div class="card" style="padding:0;overflow:hidden;cursor:pointer;" onclick="openGameDetail(${nextGame.id})">
       <div class="section-header">
-        <span style="font-size:15px;">📅</span>
         <span class="sh-title">Next Game</span>
-        <span style="margin-left:auto;font-family:var(--font-display);font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--topps-mustard);">${daysLabel}</span>
+        <span style="margin-left:auto;font-family:var(--font-display);font-size:10px;letter-spacing:.14em;color:var(--topps-mustard);text-transform:uppercase;">${daysLabel}</span>
       </div>
-      <div style="padding:16px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;">
-          <div style="font-size:20px;font-weight:800;">vs ${esc(nextGame.opponent)}</div>
-          <span class="game-badge badge-${nextGame.home_away}">${nextGame.home_away}</span>
+      <div style="display:flex;padding:14px;gap:14px;background:var(--white);align-items:stretch;">
+        <!-- LEFT: mustard ticket date block -->
+        <div style="width:80px;flex-shrink:0;background:var(--topps-mustard);border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;text-align:center;">
+          <div style="font-family:var(--font-display);font-size:10px;letter-spacing:.14em;color:var(--blue-dark);">${dMon}</div>
+          <div style="font-family:var(--font-display);font-size:34px;line-height:.9;color:var(--text);">${dDay}</div>
+          <div style="font-family:var(--font-display);font-size:8px;letter-spacing:.14em;color:var(--blue-dark);margin-top:3px;">${dDow}${nextGame.game_time?' · '+esc(nextGame.game_time):''}</div>
         </div>
-        <div style="font-size:13px;color:var(--text-light);">${fmtDate(nextGame.game_date)}${nextGame.game_time?' · '+esc(nextGame.game_time):''}${nextGame.location?' · 📍 '+esc(nextGame.location):''}</div>
-        ${nextGame.jersey?`<div style="font-size:13px;color:var(--text-light);margin-top:4px;">🎽 ${esc(nextGame.jersey)}</div>`:''}
-        ${mySpot?`<div style="font-family:var(--font-display);font-size:13px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;background:var(--topps-blue);color:var(--white);padding:8px 12px;border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);margin-top:10px;">🏏 Batting #${mySpot.batting_order}${mySpot.position?' · '+mySpot.position:''}</div>`:''}
+        <!-- RIGHT: opponent + meta -->
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;min-width:0;">
+          <div style="font-family:var(--font-script);font-size:20px;color:var(--topps-blue-dark);line-height:.9;">${nextGame.home_away==='home'?'vs the':'at the'}</div>
+          <div style="font-family:var(--font-display);font-size:18px;color:var(--text);line-height:.98;margin-top:3px;letter-spacing:.02em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;">${esc(nextGame.opponent)}</div>
+          ${nextGame.location?('<div style="font-family:var(--font-display);font-size:9px;letter-spacing:.12em;color:var(--text-light);margin-top:8px;text-transform:uppercase;">📍 '+esc(nextGame.location)+'</div>'):''}
+          ${nextGame.jersey?('<div style="font-family:var(--font-display);font-size:9px;letter-spacing:.12em;color:var(--text-light);margin-top:3px;text-transform:uppercase;">🎽 '+esc(nextGame.jersey)+'</div>'):''}
+        </div>
       </div>
+      ${mySpot?('<div style="padding:0 14px 14px;background:var(--white);"><div style="font-family:var(--font-display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:var(--topps-blue);color:var(--white);padding:9px 12px;border:2px solid var(--border);box-shadow:2px 2px 0 var(--border);text-align:center;">★ Batting #'+mySpot.batting_order+(mySpot.position?' · '+mySpot.position:'')+' ★</div></div>'):''}
     </div>`;
   }
 
