@@ -243,6 +243,20 @@ body.dark .player-check-row.checked{background:#162a35;}
 body.dark .sll-row{border-color:#2a3a50;}
 body.dark .scorebook tfoot td{background:#151f2e;}
 @media(max-width:480px){.content-inner{padding:14px 10px 90px;}.ab-btn{padding:14px 4px;font-size:14px;}.live-player-grid{grid-template-columns:1fr 1fr;}}
+
+/* LIVE SCOREBOARD */
+.scoreboard-live{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.scoreboard-live table{border-collapse:collapse;font-size:13px;width:100%;}
+.scoreboard-live th,.scoreboard-live td{padding:5px 8px;text-align:center;border:1px solid var(--border);}
+.scoreboard-live th{background:var(--blue);color:white;font-size:11px;font-weight:700;min-width:26px;}
+.scoreboard-live td:first-child{text-align:left;font-weight:700;min-width:82px;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:none;}
+.scoreboard-live .opp-cell{cursor:pointer;color:var(--text-light);}
+.scoreboard-live .opp-cell:active{background:var(--blue-light);}
+.scoreboard-live .our-total{background:var(--blue-light);color:var(--blue);font-weight:800;}
+.scoreboard-live .opp-total{background:#f0f4f8;font-weight:800;}
+
+/* VIEWER */
+#screen-viewer{background:var(--bg);}
 </style>
 </head>
 <body>
@@ -355,6 +369,23 @@ body.dark .scorebook tfoot td{background:#151f2e;}
   </div>
 </div>
 
+
+<!-- VIEWER -->
+<div class="screen" id="screen-viewer">
+  <div class="top-nav" style="background:var(--blue);">
+    <img src="MinutemenJersey.jpeg" style="width:32px;height:32px;border-radius:50%;object-fit:cover;object-position:center 30%;border:2px solid rgba(255,255,255,.35);flex-shrink:0;">
+    <div style="flex:1;margin-left:10px;">
+      <div class="nav-title" id="viewer-title">MinuteMen</div>
+      <div class="nav-sub" id="viewer-sub">LIVE</div>
+    </div>
+    <div class="nav-right">
+      <span style="font-size:11px;color:rgba(255,255,255,.7);">Auto-updating</span>
+    </div>
+  </div>
+  <div class="content">
+    <div class="content-inner" id="viewer-content"></div>
+  </div>
+</div>
 
 <!-- MODAL: Add/Edit Player -->
 <div class="modal-overlay" id="modal-player">
@@ -530,6 +561,32 @@ body.dark .scorebook tfoot td{background:#151f2e;}
   </div>
 </div>
 
+<!-- MODAL: Opponent Inning Score -->
+<div class="modal-overlay" id="modal-opp-inning">
+  <div class="modal">
+    <div class="modal-title" id="opp-inning-title">Set Opponent Runs</div>
+    <div style="font-size:14px;color:var(--text-light);margin-bottom:16px;" id="opp-inning-sub">Runs scored this inning:</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin:16px 0 24px;">
+      <button class="rbi-btn rbi-minus" style="width:52px;height:52px;font-size:28px;" onclick="adjustOppInning(-1)">−</button>
+      <div class="rbi-val" id="opp-inning-val" style="font-size:44px;font-weight:800;min-width:60px;text-align:center;">0</div>
+      <button class="rbi-btn rbi-plus" style="width:52px;height:52px;font-size:28px;" onclick="adjustOppInning(1)">+</button>
+    </div>
+    <button class="btn btn-primary" onclick="saveOppInningScore()">Save</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-opp-inning')" style="margin-top:8px;">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: Follow Along -->
+<div class="modal-overlay" id="modal-follow-along">
+  <div class="modal">
+    <div class="modal-title">Follow Along</div>
+    <div style="font-size:14px;color:var(--text-light);margin-bottom:12px;">Share this link so fans can follow the game live:</div>
+    <div id="follow-along-url" style="background:var(--blue-light);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--blue);word-break:break-all;margin-bottom:14px;user-select:all;"></div>
+    <button class="btn btn-primary" onclick="copyViewerUrl()">📋 Copy Link</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-follow-along')" style="margin-top:8px;">Done</button>
+  </div>
+</div>
+
 <!-- MODAL: Edit/Add At-Bat (Admin) -->
 <div class="modal-overlay" id="modal-edit-ab">
   <div class="modal">
@@ -640,6 +697,9 @@ let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, li
 let liveRunnerOut = false, liveDoublePlay = false;
 let _whoScoredOnBase = [], _whoScoredMarked = new Set(), _whoScoredCallback = null;
 let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0, editAbScored = false;
+let editAbFromLive = false;
+let isViewer = false, viewerInterval = null;
+let _oppInningGameId = null, _oppInningNum = null, _oppInningVal = 0;
 
 const POSITIONS   = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF','EH','DH'];
 const AB_RESULTS  = ['single','double','triple','hr','k','fc','out','error'];
@@ -648,11 +708,13 @@ const RESULT_FULL = {single:'Single',double:'Double',triple:'Triple',hr:'Home Ru
 
 // ── Init ─────────────────────────────────────────────────────────
 async function init() {
+  if (localStorage.getItem('darkMode') === '1') document.body.classList.add('dark');
+  isViewer = new URLSearchParams(window.location.search).get('viewer') === '1';
   await loadData();
+  if (isViewer) { enterViewerMode(); return; }
   showScreen('screen-pin');
   document.getElementById('pin-team-name').textContent = config.team_name || 'MinuteMen';
   document.getElementById('pin-season-sub').textContent = (config.season || '') + ' Season · Enter your PIN';
-  if (localStorage.getItem('darkMode') === '1') document.body.classList.add('dark');
 }
 
 async function loadData() {
@@ -833,7 +895,7 @@ function renderHomeTab() {
 
   // Live game banner (top priority)
   if (live) {
-    html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:14px;cursor:pointer;" onclick="enterLiveGame()">
+    html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;" onclick="enterLiveGame()">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
         <div class="live-dot"></div>
         <span style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;">Live Now</span>
@@ -841,6 +903,9 @@ function renderHomeTab() {
       <div style="font-size:20px;font-weight:800;margin-bottom:4px;">vs ${esc(live.opponent)}</div>
       <div style="font-size:13px;opacity:.9;margin-bottom:12px;">${fmtDate(live.game_date)}${live.game_time?' · '+esc(live.game_time):''} · ${live.home_away}${live.location?' · '+esc(live.location):''}</div>
       <div style="background:rgba(255,255,255,.2);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:700;text-align:center;">⚾ Enter Live Game — Log Stats</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <button class="btn btn-outline" style="margin-bottom:0;" onclick="window.open(window.location.origin+window.location.pathname+'?viewer=1','_blank')">📡 Follow Along</button>
     </div>`;
   }
 
@@ -1119,6 +1184,7 @@ function renderGameDetail(g) {
 function enterLiveGame() {
   const live = liveGame();
   if (!live) return;
+  currentGameId = live.id;
   liveCurrentBatterIdx = null;
   liveSelectedResult = null;
   liveRbiCount = 0;
@@ -1183,8 +1249,11 @@ function renderLiveGame() {
   const currentOuts = innNum ? countInningOuts(live.id, innNum) : 0;
   let html = '';
 
+  // Scoreboard
+  html += renderScoreboardHtml(live, isAdmin || isCoach);
+
   // Current batter hero card
-  html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;">
+  html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;">
     <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><div class="live-dot"></div>AT BAT</div>
     <div style="display:flex;align-items:center;gap:14px;">
       <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;flex-shrink:0;">${cb?.number?'#'+cb.number:'?'}</div>
@@ -1194,6 +1263,14 @@ function renderLiveGame() {
       </div>
     </div>
   </div>`;
+
+  // Batter navigation (admin/coach only)
+  if (isAdmin || isCoach) {
+    html += `<div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="btn btn-outline btn-sm" style="flex:1;margin-bottom:0;" onclick="goBackBatter(${live.id})">← Prev Batter</button>
+      <button class="btn btn-outline btn-sm" style="flex:1;margin-bottom:0;" onclick="skipBatter(${live.id})">Next Batter →</button>
+    </div>`;
+  }
 
   // Inning & outs strip
   html += `<div style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:var(--radius);padding:10px 18px;margin-bottom:12px;box-shadow:var(--shadow);">
@@ -1294,6 +1371,32 @@ function renderLiveGame() {
     <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-light);margin-bottom:6px;">Team This Game</div>
     <div style="font-size:18px;font-weight:700;">${tAB} AB · ${tH} H · ${tRuns} R · ${tRBI} RBI</div>
   </div>`;
+
+  // At-bat log with inline editing (admin/coach only)
+  if (isAdmin || isCoach) {
+    html += `<div class="section-card" style="margin-bottom:14px;">
+      <div class="section-header">
+        <span class="sh-title">At-Bat Log</span>
+        <button class="btn btn-sm btn-outline" style="margin-left:auto;font-size:12px;padding:5px 12px;" onclick="openEditAtBatFromLive(null,${live.id})">+ Add</button>
+      </div>
+      <div style="padding:8px 16px;">`;
+    if (gAbs.length) {
+      [...gAbs].reverse().forEach(a => {
+        const p = players.find(x => x.id === a.player_id);
+        html += `<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid #f0f4f8;">
+          <span style="flex:1;font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p?esc(p.name):'?'} — ${RESULT_FULL[a.result]||a.result}</span>
+          ${a.scored?`<span style="font-size:11px;font-weight:700;background:#e8f5e9;color:var(--green);padding:2px 6px;border-radius:8px;flex-shrink:0;">R</span>`:''}
+          ${a.rbi?`<span style="font-size:11px;font-weight:700;background:#f3e5f5;color:#6a1b9a;padding:2px 6px;border-radius:8px;flex-shrink:0;">${a.rbi} RBI</span>`:''}
+          ${a.inning?`<span style="font-size:11px;color:var(--text-light);flex-shrink:0;">Inn ${a.inning}</span>`:''}
+          <button style="background:var(--blue-light);border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--blue);flex-shrink:0;" onclick="openEditAtBatFromLive(${a.id},${live.id})">Edit</button>
+          <button style="background:#ffebee;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:12px;color:var(--red);flex-shrink:0;" onclick="deleteAtBatFromLive(${a.id},${live.id})">✕</button>
+        </div>`;
+      });
+    } else {
+      html += `<div style="text-align:center;color:var(--text-light);font-size:13px;padding:10px 0;">No at-bats logged yet.</div>`;
+    }
+    html += '</div></div>';
+  }
 
   el.innerHTML = html;
 }
@@ -2369,7 +2472,255 @@ async function saveEditAtBat() {
   closeModal('modal-edit-ab');
   showToast(editAbId ? 'At-bat updated' : 'At-bat added');
   await loadData();
-  openGameDetail(currentGameId);
+  if (editAbFromLive) {
+    editAbFromLive = false;
+    renderLiveGame();
+  } else {
+    openGameDetail(currentGameId);
+  }
+}
+
+// ── Scoreboard ───────────────────────────────────────────────────
+function getLiveScoreboard(gameId) {
+  const game = games.find(g => g.id === gameId);
+  const gAbs = atBats.filter(a => a.game_id === gameId);
+  const ourRuns = {};
+  gAbs.filter(a => a.scored && a.inning).forEach(a => {
+    ourRuns[a.inning] = (ourRuns[a.inning] || 0) + 1;
+  });
+  const oppRuns = {};
+  if (game?.opp_inning_scores) {
+    try { Object.assign(oppRuns, JSON.parse(game.opp_inning_scores)); } catch(e) {}
+  }
+  const gAbsInnings = gAbs.filter(a => a.inning).map(a => Number(a.inning));
+  const oppKeys = Object.keys(oppRuns).map(Number).filter(n => !isNaN(n));
+  const maxInn = Math.max(7, ...gAbsInnings, ...oppKeys, 0);
+  const innings = Array.from({length: maxInn}, (_, i) => i + 1);
+  const ourTotal = Object.values(ourRuns).reduce((s, v) => s + v, 0);
+  const oppTotal = Object.values(oppRuns).reduce((s, v) => s + (parseInt(v) || 0), 0);
+  return { ourRuns, oppRuns, innings, ourTotal, oppTotal };
+}
+
+function renderScoreboardHtml(game, editable) {
+  const { ourRuns, oppRuns, innings, ourTotal, oppTotal } = getLiveScoreboard(game.id);
+  const teamName = config.team_name || 'MinuteMen';
+  const inningCells = innings.map(i => {
+    const ours = ourRuns[i];
+    const opp  = oppRuns[i] !== undefined ? parseInt(oppRuns[i]) : null;
+    const ourCell = ours !== undefined
+      ? `<td style="border:1px solid var(--border);font-weight:${ours>0?'700':'400'};color:${ours>0?'var(--green)':'inherit'};">${ours}</td>`
+      : `<td style="border:1px solid var(--border);color:var(--text-light);">—</td>`;
+    const oppCell = editable
+      ? `<td class="opp-cell" style="border:1px solid var(--border);" onclick="openOppInningModal(${game.id},${i})">${opp !== null ? opp : '<span style="font-size:11px;color:var(--text-light);">+</span>'}</td>`
+      : `<td style="border:1px solid var(--border);color:${opp!==null&&opp>0?'var(--red)':'inherit'};">${opp !== null ? opp : '—'}</td>`;
+    return { ourCell, oppCell };
+  });
+  return `<div class="card" style="margin-bottom:12px;padding:12px 14px;">
+    <div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Scoreboard${editable?' <span style="font-weight:400;text-transform:none;letter-spacing:0;">(tap opponent cell to enter runs)</span>':''}</div>
+    <div class="scoreboard-live"><table>
+      <thead><tr>
+        <td style="border:none;background:transparent;"></td>
+        ${innings.map(i => `<th>${i}</th>`).join('')}
+        <th style="background:#1a3550;">R</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="border:1px solid var(--border);color:var(--blue);">${esc(teamName)}</td>
+          ${inningCells.map(c => c.ourCell).join('')}
+          <td class="our-total" style="border:1px solid var(--border);">${ourTotal}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid var(--border);">${esc(game.opponent)}</td>
+          ${inningCells.map(c => c.oppCell).join('')}
+          <td class="opp-total" style="border:1px solid var(--border);color:${oppTotal>ourTotal?'var(--red)':oppTotal<ourTotal?'var(--text-light)':'inherit'};">${oppTotal}</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function openOppInningModal(gameId, inning) {
+  _oppInningGameId = gameId;
+  _oppInningNum = inning;
+  const game = games.find(g => g.id === gameId);
+  const scores = {};
+  if (game?.opp_inning_scores) { try { Object.assign(scores, JSON.parse(game.opp_inning_scores)); } catch(e) {} }
+  _oppInningVal = parseInt(scores[inning]) || 0;
+  document.getElementById('opp-inning-title').textContent = `${game?.opponent || 'Opponent'} — Inning ${inning}`;
+  document.getElementById('opp-inning-val').textContent = _oppInningVal;
+  openModal('modal-opp-inning');
+}
+
+function adjustOppInning(delta) {
+  _oppInningVal = Math.max(0, Math.min(20, _oppInningVal + delta));
+  document.getElementById('opp-inning-val').textContent = _oppInningVal;
+}
+
+async function saveOppInningScore() {
+  const game = games.find(g => g.id === _oppInningGameId);
+  if (!game) return;
+  const scores = {};
+  if (game.opp_inning_scores) { try { Object.assign(scores, JSON.parse(game.opp_inning_scores)); } catch(e) {} }
+  scores[_oppInningNum] = _oppInningVal;
+  const {error} = await sb.from('sb_games').update({opp_inning_scores: JSON.stringify(scores)}).eq('id', _oppInningGameId);
+  if (error) { showToast('Save failed — run the DB migration first'); return; }
+  closeModal('modal-opp-inning');
+  await loadData();
+  if (isViewer) renderViewerContent(); else renderLiveGame();
+  showToast('Score updated');
+}
+
+// ── Batter Navigation ─────────────────────────────────────────────
+function goBackBatter(gameId) {
+  const live = liveGame();
+  if (!live) return;
+  const gp = gamePlayers.filter(x => x.game_id === live.id).map(x => x.player_id);
+  const gl = lineups.filter(l => l.game_id === live.id).sort((a,b) => a.batting_order - b.batting_order);
+  const ordered = gl.length ? [...gl.map(l => l.player_id), ...gp.filter(id => !gl.find(l => l.player_id === id))] : gp;
+  if (!ordered.length) return;
+  liveCurrentBatterIdx = ((liveCurrentBatterIdx ?? 0) - 1 + ordered.length) % ordered.length;
+  liveSelectedResult = null; liveRbiCount = 0; liveRunnerOut = false; liveDoublePlay = false;
+  renderLiveGame();
+}
+
+function skipBatter(gameId) {
+  advanceBatter(gameId);
+}
+
+// ── Live At-Bat Editing ───────────────────────────────────────────
+function openEditAtBatFromLive(abId, gameId) {
+  editAbFromLive = true;
+  currentGameId = gameId;
+  openEditAtBatModal(abId, gameId);
+}
+
+async function deleteAtBatFromLive(id, gameId) {
+  if (!confirm('Remove this at-bat?')) return;
+  const {error} = await sb.from('sb_at_bats').delete().eq('id', id);
+  if (error) { showToast('Could not delete'); return; }
+  showToast('Removed');
+  await loadData();
+  renderLiveGame();
+}
+
+// ── Follow Along ──────────────────────────────────────────────────
+function showFollowAlongModal() {
+  const url = window.location.origin + window.location.pathname + '?viewer=1';
+  document.getElementById('follow-along-url').textContent = url;
+  openModal('modal-follow-along');
+}
+
+async function copyViewerUrl() {
+  const url = document.getElementById('follow-along-url').textContent;
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Link copied!');
+  } catch(e) {
+    showToast('Copy the link above');
+  }
+}
+
+// ── Viewer Mode ───────────────────────────────────────────────────
+function enterViewerMode() {
+  const live = liveGame();
+  const teamName = config.team_name || 'MinuteMen';
+  document.getElementById('viewer-title').textContent = live ? teamName + ' vs ' + live.opponent : teamName;
+  document.getElementById('viewer-sub').textContent = live ? '● LIVE' : (config.season || '');
+  renderViewerContent();
+  showScreen('screen-viewer');
+  if (viewerInterval) clearInterval(viewerInterval);
+  viewerInterval = setInterval(async () => {
+    await loadData();
+    const lv = liveGame();
+    document.getElementById('viewer-title').textContent = lv ? (config.team_name||'MinuteMen') + ' vs ' + lv.opponent : (config.team_name||'MinuteMen');
+    document.getElementById('viewer-sub').textContent = lv ? '● LIVE' : (config.season || '');
+    renderViewerContent();
+  }, 20000);
+}
+
+function renderViewerContent() {
+  const el = document.getElementById('viewer-content');
+  const live = liveGame();
+  if (!live) {
+    el.innerHTML = `<div class="empty-state" style="padding:60px 20px;">
+      <div class="empty-icon">⚾</div>
+      <div class="empty-msg">No live game right now</div>
+      <div class="empty-sub">Check back later!</div>
+    </div>`;
+    return;
+  }
+  const gAbs    = atBats.filter(a => a.game_id === live.id);
+  const gLineup = lineups.filter(l => l.game_id === live.id).sort((a,b) => a.batting_order - b.batting_order);
+  const gP      = gamePlayers.filter(gp => gp.game_id === live.id).map(gp => gp.player_id);
+  const ordered = gLineup.length
+    ? [...gLineup.map(l => l.player_id), ...gP.filter(id => !gLineup.find(l => l.player_id === id))]
+    : gP;
+
+  const curIdx  = ordered.length > 0 ? gAbs.length % ordered.length : 0;
+  const nextIdx = (curIdx + 1) % Math.max(ordered.length, 1);
+  const cb  = players.find(x => x.id === ordered[curIdx]);
+  const nb  = players.find(x => x.id === ordered[nextIdx]);
+  const cbAbs = gAbs.filter(a => a.player_id === ordered[curIdx]);
+  const cbSt  = calcStats(cbAbs);
+
+  const gAbsWithInn = gAbs.filter(a => a.inning);
+  const curInning   = gAbsWithInn.length ? Math.max(...gAbsWithInn.map(a => a.inning)) : 1;
+  const curOuts     = countInningOuts(live.id, curInning);
+
+  let html = '';
+
+  // Scoreboard
+  html += renderScoreboardHtml(live, false);
+
+  // Inning & outs
+  html += `<div style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:var(--radius);padding:10px 18px;margin-bottom:12px;box-shadow:var(--shadow);">
+    <div><div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;">Inning</div><div style="font-size:22px;font-weight:800;">${curInning}</div></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      ${[0,1,2].map(i => '<div style="width:14px;height:14px;border-radius:50%;background:' + (curOuts>i?'var(--red)':'var(--border)') + ';"></div>').join('')}
+    </div>
+    <div style="text-align:right;"><div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.08em;text-transform:uppercase;">Out${curOuts!==1?'s':''}</div><div style="font-size:22px;font-weight:800;">${curOuts}</div></div>
+  </div>`;
+
+  // Current batter
+  if (cb) {
+    html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:8px;display:flex;align-items:center;gap:6px;"><div class="live-dot"></div>AT BAT</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0;">${cb.number?'#'+cb.number:'?'}</div>
+        <div>
+          <div style="font-size:20px;font-weight:800;">${esc(cb.name)}</div>
+          <div style="font-size:13px;opacity:.85;margin-top:2px;">Today: ${cbSt.h}-${cbSt.ab}${cbSt.rbi?', '+cbSt.rbi+' RBI':''}${cbSt.bb?', '+cbSt.bb+' BB':''}${cbSt.runs?', '+cbSt.runs+' R':''}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // On deck
+  if (nb && ordered.length > 1 && nb.id !== (cb?.id)) {
+    html += `<div style="background:var(--gold-light);border:1px solid #ffe082;border-radius:var(--radius);padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:10px;font-weight:800;color:#f57f17;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;">ON DECK</span>
+      <span style="font-size:16px;font-weight:700;">${esc(nb.name)}${nb.number?' #'+nb.number:''}</span>
+    </div>`;
+  }
+
+  // Recent plays
+  const recent = [...gAbs].reverse().slice(0, 6);
+  if (recent.length) {
+    html += `<div class="section-card"><div class="section-header"><span class="sh-title">Recent Plays</span></div><div style="padding:8px 16px;">`;
+    recent.forEach(a => {
+      const p = players.find(x => x.id === a.player_id);
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f4f8;">
+        <span style="flex:1;font-size:14px;font-weight:600;">${p?esc(p.name):'?'} — ${RESULT_FULL[a.result]||a.result}</span>
+        ${a.scored?`<span style="font-size:12px;font-weight:700;background:#e8f5e9;color:var(--green);padding:2px 8px;border-radius:10px;">R</span>`:''}
+        ${a.rbi?`<span style="font-size:12px;font-weight:700;background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;">${a.rbi} RBI</span>`:''}
+        ${a.inning?`<span style="font-size:12px;color:var(--text-light);">Inn ${a.inning}</span>`:''}
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  html += `<div style="text-align:center;font-size:12px;color:var(--text-light);padding:16px 0;">Auto-updating every 20 seconds</div>`;
+  el.innerHTML = html;
 }
 
 // ── CSV Parser ────────────────────────────────────────────────────
