@@ -35,11 +35,13 @@ create table if not exists sb_games (
   opponent    text not null,
   home_away   text not null default 'home',
   location    text,
-  our_score   integer,
-  opp_score   integer,
-  status      text not null default 'scheduled',
-  notes       text,
-  created_at  timestamptz default now()
+  our_score          integer,
+  opp_score          integer,
+  status             text not null default 'scheduled',
+  notes              text,
+  jersey             text,
+  opp_inning_scores  text,
+  created_at         timestamptz default now()
 );
 
 -- 4. Game players (who is playing in each game) -------------------
