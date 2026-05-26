@@ -2691,7 +2691,7 @@ function enterViewerMode() {
     document.getElementById('viewer-title').textContent = lv ? (config.team_name||'MinuteMen') + ' vs ' + lv.opponent : (config.team_name||'MinuteMen');
     document.getElementById('viewer-sub').textContent = lv ? '● LIVE' : (config.season || '');
     renderViewerContent();
-  }, 20000);
+  }, 10000);
 }
 
 function renderViewerContent() {
@@ -2775,7 +2775,7 @@ function renderViewerContent() {
     html += '</div></div>';
   }
 
-  html += `<div style="text-align:center;font-size:12px;color:var(--text-light);padding:16px 0;">Auto-updating every 20 seconds</div>`;
+  html += `<div style="text-align:center;font-size:12px;color:var(--text-light);padding:16px 0;">Auto-updating every 10 seconds</div>`;
   el.innerHTML = html;
 }
 
