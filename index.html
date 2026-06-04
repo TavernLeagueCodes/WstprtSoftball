@@ -739,6 +739,7 @@ let pinBuffer = '';
 let currentGameId = null, startLiveGameId = null, endLiveGameId = null;
 let _pendingRoster = [], _pendingSchedule = [];
 let _startLineup = [], _startBench = [], _startAttendees = [], _startStep = 'attendance';
+let _adminAttendees = [], _adminGameId = null;
 let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
 let liveDoublePlay = false;
@@ -2239,7 +2240,7 @@ function renderAdminLineup() {
   }
   let html = `<div class="form-group">
     <label class="form-label">Select Game</label>
-    <select class="form-select" id="lineup-game-sel" onchange="renderLineupEditor()">
+    <select class="form-select" id="lineup-game-sel" onchange="renderAdminAttendanceStep()">
       <option value="">— pick a game —</option>
       ${eligible.map(g=>`<option value="${g.id}">${fmtDateShort(g.game_date)}${g.game_time?' '+esc(g.game_time):''} vs ${esc(g.opponent)}${g.status==='live'?' ● LIVE':''}</option>`).join('')}
     </select>
@@ -2247,16 +2248,64 @@ function renderAdminLineup() {
   el.innerHTML = html;
 }
 
-function renderLineupEditor() {
+function renderAdminAttendanceStep() {
   const gameId = parseInt(document.getElementById('lineup-game-sel').value);
   const el = document.getElementById('lineup-editor');
+  if (!gameId) { _adminAttendees = []; _adminGameId = null; el.innerHTML = ''; return; }
+
+  _adminGameId = gameId;
+  const savedLu = lineups.filter(l => l.game_id === gameId).sort((a,b) => a.batting_order - b.batting_order);
+  const inLuIds = new Set(savedLu.map(l => l.player_id));
+  const gPids = gamePlayers.filter(gp => gp.game_id === gameId).map(gp => gp.player_id);
+  const pool = (gPids.length
+    ? players.filter(p => p.active && gPids.includes(p.id))
+    : players.filter(p => p.active)
+  ).sort((a,b) => a.name.localeCompare(b.name));
+
+  _adminAttendees = pool.map(p => ({
+    player_id: p.id, name: p.name, number: p.number || '',
+    attending: savedLu.length ? inLuIds.has(p.id) : true
+  }));
+
+  renderAdminAttendanceUI();
+}
+
+function renderAdminAttendanceUI() {
+  const el = document.getElementById('lineup-editor');
+  const count = _adminAttendees.filter(x => x.attending).length;
+  let html = `<div class="section-card" style="margin-top:4px;">
+    <div class="section-header"><span class="sh-title">Who's Playing?</span><span style="font-size:13px;color:var(--text-light);margin-left:auto;">${count} selected</span></div>
+    <div style="padding:12px 16px;">`;
+  html += _adminAttendees.map(item =>
+    `<div class="player-check-row ${item.attending?'checked':''}" onclick="toggleAdminAttendee(${item.player_id})" style="margin-bottom:6px;">
+      <div class="check-box">${item.attending?'✓':''}</div>
+      <div style="flex:1;font-weight:700;font-size:14px;">${esc(item.name)}${item.number?` <span style="font-size:11px;color:var(--text-light);">#${item.number}</span>`:''}</div>
+    </div>`
+  ).join('');
+  html += `</div></div>
+  <button class="btn btn-primary" onclick="renderLineupEditor()" ${count===0?'disabled':''}>Set Lineup →</button>`;
+  el.innerHTML = html;
+}
+
+function toggleAdminAttendee(pid) {
+  const item = _adminAttendees.find(x => x.player_id === pid);
+  if (item) { item.attending = !item.attending; renderAdminAttendanceUI(); }
+}
+
+function renderLineupEditor() {
+  const gameId = _adminGameId || parseInt(document.getElementById('lineup-game-sel').value);
+  const el = document.getElementById('lineup-editor');
   if (!gameId) { el.innerHTML=''; return; }
+
   const gLineup = lineups.filter(l=>l.game_id===gameId).sort((a,b)=>a.batting_order-b.batting_order);
-  const gPlayerIds = gamePlayers.filter(gp=>gp.game_id===gameId).map(gp=>gp.player_id);
-  const pool = gPlayerIds.length
-    ? players.filter(p=>p.active && gPlayerIds.includes(p.id))
-    : players.filter(p=>p.active);
-  const SLOTS = Math.max(pool.length, 11);
+  const attendingIds = _adminAttendees.length
+    ? new Set(_adminAttendees.filter(x=>x.attending).map(x=>x.player_id))
+    : null;
+  const pool = attendingIds
+    ? players.filter(p=>p.active && attendingIds.has(p.id))
+    : (() => { const gPids=gamePlayers.filter(gp=>gp.game_id===gameId).map(gp=>gp.player_id); return gPids.length?players.filter(p=>p.active&&gPids.includes(p.id)):players.filter(p=>p.active); })();
+
+  const SLOTS = pool.length;
   let html = `<div class="section-card" style="margin-top:4px;"><div class="section-header"><span class="sh-title">Batting Order</span></div><div style="padding:14px 16px;">`;
   for (let i=1; i<=SLOTS; i++) {
     const spot = gLineup.find(l=>l.batting_order===i);
@@ -2272,7 +2321,12 @@ function renderLineupEditor() {
       </select>
     </div>`;
   }
-  html += `</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-outline" onclick="suggestAdminLineup(${gameId},${SLOTS})" style="flex:1;">⚡ Suggest Lineup</button><button class="btn btn-primary" onclick="saveLineup(${gameId},${SLOTS})" style="flex:1;">Save Lineup</button></div>`;
+  html += `</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-outline" onclick="renderAdminAttendanceUI()" style="flex:1;">← Attendance</button>
+    <button class="btn btn-outline" onclick="suggestAdminLineup(${gameId},${SLOTS})" style="flex:1;">⚡ Suggest</button>
+    <button class="btn btn-primary" onclick="saveLineup(${gameId},${SLOTS})" style="flex:1;">Save</button>
+  </div>`;
   el.innerHTML = html;
 }
 
@@ -2334,11 +2388,9 @@ function suggestStartLiveLineup() {
 }
 
 function suggestAdminLineup(gameId, slots) {
-  const gPids = gamePlayers.filter(gp => gp.game_id === gameId).map(gp => gp.player_id);
-  const pool = (gPids.length
-    ? players.filter(p => p.active && gPids.includes(p.id))
-    : players.filter(p => p.active)
-  ).map(p => p.id);
+  const pool = _adminAttendees.length
+    ? _adminAttendees.filter(x => x.attending).map(x => x.player_id)
+    : (() => { const gPids=gamePlayers.filter(gp=>gp.game_id===gameId).map(gp=>gp.player_id); return (gPids.length?players.filter(p=>p.active&&gPids.includes(p.id)):players.filter(p=>p.active)).map(p=>p.id); })();
   if (!pool.length) { showToast('No players found for this game'); return; }
 
   const suggested = buildSuggestedOrder(pool);
