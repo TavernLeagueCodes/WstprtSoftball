@@ -2188,7 +2188,7 @@ async function confirmEndGame() {
 // ── Admin: Lineup ────────────────────────────────────────────────
 function renderAdminLineup() {
   const el = document.getElementById('atab-lineup');
-  const eligible = games.filter(g=>g.status!=='cancelled').sort((a,b)=>a.game_date.localeCompare(b.game_date));
+  const eligible = games.filter(g=>g.status!=='cancelled'&&g.status!=='final').sort((a,b)=>a.game_date.localeCompare(b.game_date));
   if (!eligible.length) {
     el.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">Add games first</div></div>'; return;
   }
