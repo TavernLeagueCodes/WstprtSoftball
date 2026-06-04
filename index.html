@@ -648,25 +648,15 @@ body.dark .badge-cancelled{background:var(--paper-dk);color:var(--text-light);}
       <button class="ab-btn ab-e" onclick="editAbSelectResult('error')">E<div class="ab-result-label">Error</div></button>
       <button class="ab-btn ab-out" onclick="editAbSelectResult('out')" style="grid-column:1/-1;">OUT<div class="ab-result-label">Out</div></button>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-      <div style="flex:1;text-align:center;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">RBI</div>
-        <div class="rbi-counter" style="margin:0;">
-          <button class="rbi-btn rbi-minus" onclick="editAbAdjustRbi(-1)">−</button>
-          <div class="rbi-val" id="edit-ab-rbi-val">0</div>
-          <button class="rbi-btn rbi-plus" onclick="editAbAdjustRbi(1)">+</button>
-        </div>
-      </div>
-      <div style="flex:1;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Inning</div>
-        <select class="form-select" id="edit-ab-inning" style="text-align:center;padding:10px 8px;">
-          <option value="">—</option>
-          <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
-          <option value="4">4th</option><option value="5">5th</option><option value="6">6th</option>
-          <option value="7">7th</option><option value="8">8th</option><option value="9">9th</option>
-          <option value="10">10th</option><option value="11">11th</option><option value="12">12th</option>
-        </select>
-      </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Inning</div>
+      <select class="form-select" id="edit-ab-inning" style="text-align:center;padding:10px 8px;width:100%;">
+        <option value="">—</option>
+        <option value="1">1st</option><option value="2">2nd</option><option value="3">3rd</option>
+        <option value="4">4th</option><option value="5">5th</option><option value="6">6th</option>
+        <option value="7">7th</option><option value="8">8th</option><option value="9">9th</option>
+        <option value="10">10th</option><option value="11">11th</option><option value="12">12th</option>
+      </select>
     </div>
     <div style="margin-bottom:14px;">
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f0e3b3;border-radius:10px;cursor:pointer;border:1.5px solid var(--border);">
@@ -749,7 +739,7 @@ let liveDoublePlay = false;
 let _whoScoredOnBase = [], _whoScoredMarked = new Set(), _whoScoredCallback = null;
 let _rbiTargetAbId = null, _rbiIsHR = false;
 let _runnerOutOnBase = [], _runnerOutSelectedAbId = null, _runnerOutFcAbId = null, _runnerOutCallback = null;
-let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0, editAbScored = false;
+let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbScored = false;
 let editAbFromLive = false;
 let isViewer = false, viewerInterval = null;
 let _oppInningGameId = null, _oppInningNum = null, _oppInningVal = 0;
@@ -776,7 +766,7 @@ async function loadData() {
     sb.from('sb_players').select('*').order('name'),
     sb.from('sb_games').select('*').order('game_date'),
     sb.from('sb_lineups').select('*').order('batting_order'),
-    sb.from('sb_at_bats').select('*'),
+    sb.from('sb_at_bats').select('*').order('id'),
     sb.from('sb_game_players').select('*')
   ]);
   config      = Object.fromEntries((cfgR.data || []).map(r => [r.key, r.value]));
@@ -2341,9 +2331,9 @@ function skipWhoScored() {
 }
 
 // ── Who Was Put Out Modal ─────────────────────────────────────────
-function showWhoPutOutModal(onBaseAbs, fcAbId, callback) {
+function showWhoPutOutModal(onBaseAbs, fcAbId, callback, preSelectedAbId = null) {
   _runnerOutOnBase = onBaseAbs;
-  _runnerOutSelectedAbId = null;
+  _runnerOutSelectedAbId = preSelectedAbId;
   _runnerOutFcAbId = fcAbId;
   _runnerOutCallback = callback;
   renderWhoPutOutModal();
@@ -2593,7 +2583,6 @@ function openEditAtBatModal(abId, gameId) {
   editAbId = abId;
   editAbGameId = gameId;
   editAbSelectedResult = null;
-  editAbRbiCount = 0;
 
   const playerDisp = document.getElementById('modal-edit-ab-player');
   const playerSelDiv = document.getElementById('modal-edit-ab-player-sel');
@@ -2607,14 +2596,12 @@ function openEditAtBatModal(abId, gameId) {
     playerDisp.style.display = '';
     playerSelDiv.style.display = 'none';
     editAbSelectedResult = ab?.result || null;
-    editAbRbiCount = ab?.rbi || 0;
     editAbScored = ab?.scored || false;
     document.getElementById('edit-ab-inning').value = ab?.inning || '';
     document.getElementById('edit-ab-scored-cb').checked = editAbScored;
   } else {
     playerDisp.style.display = 'none';
     playerSelDiv.style.display = '';
-    editAbRbiCount = 0;
     editAbScored = false;
     document.getElementById('edit-ab-inning').value = '';
     document.getElementById('edit-ab-scored-cb').checked = false;
@@ -2629,7 +2616,6 @@ function openEditAtBatModal(abId, gameId) {
           .join('');
   }
 
-  document.getElementById('edit-ab-rbi-val').textContent = editAbRbiCount;
   updateEditAbResultButtons();
   openModal('modal-edit-ab');
 }
@@ -2648,10 +2634,6 @@ function editAbSelectResult(result) {
   document.getElementById('edit-ab-error').style.display = 'none';
 }
 
-function editAbAdjustRbi(delta) {
-  editAbRbiCount = Math.max(0, Math.min(10, editAbRbiCount + delta));
-  document.getElementById('edit-ab-rbi-val').textContent = editAbRbiCount;
-}
 
 async function saveEditAtBat() {
   if (!editAbSelectedResult) {
@@ -2661,12 +2643,25 @@ async function saveEditAtBat() {
     return;
   }
   const inning = document.getElementById('edit-ab-inning').value;
-  const data = { result: editAbSelectedResult, rbi: editAbRbiCount, inning: inning ? parseInt(inning) : null, scored: editAbScored };
+  const innNum = inning ? parseInt(inning) : null;
+  const isHR = editAbSelectedResult === 'hr';
+  const isFC = editAbSelectedResult === 'fc';
 
+  // Capture existing runner_out_player_id before overwriting (for FC pre-selection)
+  const prevRunnerOutPlayerId = editAbId ? atBats.find(x => x.id === editAbId)?.runner_out_player_id : null;
+
+  const data = {
+    result: editAbSelectedResult, rbi: 0,
+    inning: innNum, scored: editAbScored,
+    runner_out: false, runner_out_player_id: null
+  };
+
+  let savedAbId;
   if (editAbId) {
     const {data: rows, error} = await sb.from('sb_at_bats').update(data).eq('id', editAbId).select();
     if (error) { showToast('Save failed: ' + error.message); return; }
     if (!rows || rows.length === 0) { showToast('Not saved — enable UPDATE on sb_at_bats in Supabase'); return; }
+    savedAbId = editAbId;
   } else {
     const pid = parseInt(document.getElementById('edit-ab-player-inp').value);
     if (!pid) {
@@ -2678,17 +2673,56 @@ async function saveEditAtBat() {
     const {data: rows, error} = await sb.from('sb_at_bats').insert({game_id: editAbGameId, player_id: pid, ...data}).select();
     if (error) { showToast('Save failed: ' + error.message); return; }
     if (!rows || rows.length === 0) { showToast('Not saved — enable INSERT on sb_at_bats in Supabase'); return; }
+    savedAbId = rows[0]?.id;
   }
 
   closeModal('modal-edit-ab');
-  showToast(editAbId ? 'At-bat updated' : 'At-bat added');
   await loadData();
-  if (editAbFromLive) {
-    editAbFromLive = false;
-    renderLiveGame();
-  } else {
-    openGameDetail(currentGameId);
+
+  const gameId = editAbGameId;
+  const ON_BASE = ['single','double','triple','bb','fc','error'];
+
+  function afterModals() {
+    showToast(editAbId ? 'At-bat updated' : 'At-bat added');
+    if (editAbFromLive) { editAbFromLive = false; renderLiveGame(); }
+    else { openGameDetail(currentGameId); }
   }
+
+  if (isFC) {
+    const onBase = atBats.filter(ab =>
+      ab.game_id === gameId && ON_BASE.includes(ab.result) &&
+      !ab.scored && ab.id !== savedAbId && (!innNum || ab.inning === innNum)
+    );
+    const preSelectedAbId = prevRunnerOutPlayerId
+      ? (onBase.find(ab => ab.player_id === prevRunnerOutPlayerId)?.id ?? null)
+      : null;
+    showWhoPutOutModal(onBase, savedAbId, async () => {
+      await loadData();
+      afterModals();
+    }, preSelectedAbId);
+    return;
+  }
+
+  const isOutResult = ['k', 'out'].includes(editAbSelectedResult);
+  if (!isOutResult) {
+    const onBase = atBats.filter(ab =>
+      ab.game_id === gameId && ON_BASE.includes(ab.result) &&
+      !ab.scored && ab.id !== savedAbId && (!innNum || ab.inning === innNum)
+    );
+    if (onBase.length > 0) {
+      _rbiTargetAbId = savedAbId; _rbiIsHR = isHR;
+      _whoScoredCallback = afterModals;
+      const preMarked = isHR ? new Set(onBase.map(ab => ab.id)) : new Set();
+      showWhoScoredModal(onBase, preMarked);
+      return;
+    }
+  }
+
+  if (isHR && savedAbId) {
+    await sb.from('sb_at_bats').update({ rbi: 1 }).eq('id', savedAbId);
+  }
+
+  afterModals();
 }
 
 // ── Scoreboard ───────────────────────────────────────────────────
