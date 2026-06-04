@@ -2496,6 +2496,13 @@ function exportScorebookPrint(gameId) {
 </tr></thead>
 <tbody>`;
 
+  // Build lookup: player_id -> set of innings where they were retired on a FC
+  const fcRetiredInnings = {};
+  gAbs.filter(a => a.result === 'fc' && a.runner_out_player_id).forEach(a => {
+    if (!fcRetiredInnings[a.runner_out_player_id]) fcRetiredInnings[a.runner_out_player_id] = new Set();
+    if (a.inning) fcRetiredInnings[a.runner_out_player_id].add(a.inning);
+  });
+
   playerRows.forEach(({p, st, spot, byCells}) => {
     const orderNum = spot ? spot.batting_order + '. ' : '';
     const posStr = spot?.position || '';
@@ -2514,7 +2521,8 @@ function exportScorebookPrint(gameId) {
           if (code==='K')  cls='k';
           const retiredP = (a.result==='fc' && a.runner_out_player_id) ? players.find(x=>x.id===a.runner_out_player_id) : null;
           const retiredTag = retiredP ? `<span class="scored-r" style="color:#8a1a26;">†${retiredP.number||retiredP.name.split(' ')[0]}</span>` : '';
-          return `<span class="${cls}">${code}${retiredTag}${a.rbi?'<sub>'+a.rbi+'</sub>':''}${a.scored?'<span class="scored-r">R</span>':''}</span>`;
+          const fcOutTag = (p && fcRetiredInnings[p.id]?.has(i)) ? `<span class="scored-r" style="color:#8a1a26;">†</span>` : '';
+          return `<span class="${cls}">${code}${retiredTag}${fcOutTag}${a.rbi?'<sub>'+a.rbi+'</sub>':''}${a.scored?'<span class="scored-r">R</span>':''}</span>`;
         }).join(' ');
         return `<td class="inn">${cells}</td>`;
       }).join('')}
