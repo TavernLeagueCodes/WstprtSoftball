@@ -681,6 +681,18 @@ body.dark .badge-cancelled{background:var(--paper-dk);color:var(--text-light);}
 </div>
 
 <!-- MODAL: Who Scored? -->
+<div class="modal-overlay" id="modal-who-put-out">
+  <div class="modal">
+    <div class="modal-title">Who was retired?</div>
+    <div style="font-size:14px;color:var(--text-light);margin-bottom:14px;">Tap the runner put out on this play:</div>
+    <div id="who-put-out-list"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="confirmWhoPutOut()">Confirm</button>
+      <button class="btn btn-outline" onclick="noPutOut()" style="margin-top:8px;">Nobody — no out recorded</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-who-scored">
   <div class="modal">
     <div class="modal-title">Who scored?</div>
@@ -733,9 +745,10 @@ let _pendingRoster = [], _pendingSchedule = [];
 let _startLineup = [], _startBench = [];
 let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
-let liveRunnerOut = false, liveDoublePlay = false;
+let liveDoublePlay = false;
 let _whoScoredOnBase = [], _whoScoredMarked = new Set(), _whoScoredCallback = null;
 let _rbiTargetAbId = null, _rbiIsHR = false;
+let _runnerOutOnBase = [], _runnerOutSelectedAbId = null, _runnerOutFcAbId = null, _runnerOutCallback = null;
 let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0, editAbScored = false;
 let editAbFromLive = false;
 let isViewer = false, viewerInterval = null;
@@ -1295,7 +1308,7 @@ function enterLiveGame() {
   liveCurrentBatterIdx = null;
   liveSelectedResult = null;
   liveRbiCount = 0;
-  liveRunnerOut = false;
+ 
   liveDoublePlay = false;
   const gAbsForInn = atBats.filter(a => a.game_id === live.id && a.inning);
   liveInning = gAbsForInn.length ? String(Math.max(...gAbsForInn.map(a => a.inning))) : '1';
@@ -1316,7 +1329,7 @@ function exitLiveGame() {
   liveCurrentBatterIdx = null;
   liveSelectedResult = null;
   liveRbiCount = 0;
-  liveRunnerOut = false;
+ 
   liveDoublePlay = false;
   liveInning = '';
   showScreen('screen-home');
@@ -1403,12 +1416,6 @@ function renderLiveGame() {
       <button class="ab-btn ab-fc${sel==='fc'?' selected':''}" onclick="liveSelectResult('fc')">FC<div class="ab-result-label">Field. Choice</div></button>
       <button class="ab-btn ab-e${sel==='error'?' selected':''}" onclick="liveSelectResult('error')">E<div class="ab-result-label">Error</div></button>
       <button class="ab-btn ab-out${sel==='out'?' selected':''}" onclick="liveSelectResult('out')" style="grid-column:1/-1;">OUT<div class="ab-result-label">Out</div></button>
-    </div>
-    <div id="live-fc-toggle" style="display:${sel==='fc'?'':'none'};margin-bottom:10px;">
-      <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fbedc4;border-radius:10px;cursor:pointer;border:1.5px solid var(--border);">
-        <input type="checkbox" id="live-runner-out-cb" onchange="liveRunnerOut=this.checked" style="width:20px;height:20px;cursor:pointer;flex-shrink:0;">
-        <span style="font-size:14px;font-weight:600;">Runner retired on this play <span style="font-size:12px;color:var(--text-light);">(+1 out)</span></span>
-      </label>
     </div>
     <div id="live-dp-toggle" style="display:${sel==='out'?'':'none'};margin-bottom:10px;">
       <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#d9c688;border-radius:10px;cursor:pointer;border:1.5px solid var(--border);">
@@ -1500,16 +1507,14 @@ function renderLiveGame() {
 
 function liveSelectResult(result) {
   liveSelectedResult = result;
-  liveRunnerOut = false;
+ 
   liveDoublePlay = false;
   document.querySelectorAll('#live-content .ab-btn').forEach(b => b.classList.remove('selected'));
   const classMap = {single:'ab-1b',double:'ab-2b',triple:'ab-3b',hr:'ab-hr',bb:'ab-bb',k:'ab-k',sf:'ab-sf',fc:'ab-fc',out:'ab-out',error:'ab-e'};
   document.querySelector('#live-content .'+classMap[result])?.classList.add('selected');
   const err = document.getElementById('live-ab-error');
   if (err) err.style.display = 'none';
-  const fcToggle = document.getElementById('live-fc-toggle');
   const dpToggle = document.getElementById('live-dp-toggle');
-  if (fcToggle) { fcToggle.style.display = result === 'fc' ? '' : 'none'; document.getElementById('live-runner-out-cb').checked = false; }
   if (dpToggle) { dpToggle.style.display = result === 'out' ? '' : 'none'; document.getElementById('live-dp-cb').checked = false; }
 }
 
@@ -1518,7 +1523,7 @@ function setLiveBatter(idx) {
   liveCurrentBatterIdx = idx;
   liveSelectedResult = null;
   liveRbiCount = 0;
-  liveRunnerOut = false;
+ 
   liveDoublePlay = false;
   renderLiveGame();
 }
@@ -1538,7 +1543,8 @@ async function saveLiveAtBat(playerId, gameId) {
     game_id: gameId, player_id: playerId,
     result: liveSelectedResult, rbi: 0,
     inning: innNum,
-    runner_out: liveRunnerOut,
+    runner_out: false,
+    runner_out_player_id: null,
     double_play: liveDoublePlay,
     scored: isHR
   }).select();
@@ -1548,6 +1554,39 @@ async function saveLiveAtBat(playerId, gameId) {
   await loadData();
 
   const ON_BASE = ['single','double','triple','bb','fc','error'];
+
+  // FC: show "Who was put out?" modal first; outs check and "Who scored?" run inside the callback
+  if (liveSelectedResult === 'fc') {
+    const onBase = atBats.filter(ab =>
+      ab.game_id === gameId && ON_BASE.includes(ab.result) &&
+      !ab.scored && ab.id !== newAbId && (!innNum || ab.inning === innNum)
+    );
+    showWhoPutOutModal(onBase, newAbId, async () => {
+      await loadData();
+      if (innNum) {
+        const outs = countInningOuts(gameId, innNum);
+        if (outs >= 3) {
+          liveInning = String(innNum + 1);
+          showToast(`3 outs — Inning ${innNum + 1}!`);
+          advanceBatter(gameId);
+          return;
+        }
+      }
+      const stillOnBase = atBats.filter(ab =>
+        ab.game_id === gameId && ON_BASE.includes(ab.result) &&
+        !ab.scored && ab.id !== newAbId && (!innNum || ab.inning === innNum)
+      );
+      if (stillOnBase.length > 0) {
+        _rbiTargetAbId = newAbId; _rbiIsHR = false;
+        _whoScoredCallback = () => advanceBatter(gameId);
+        showWhoScoredModal(stillOnBase, new Set());
+        return;
+      }
+      advanceBatter(gameId);
+    });
+    showToast('FC — saved!');
+    return;
+  }
 
   // Auto-advance inning at 3 outs
   if (innNum) {
@@ -1598,7 +1637,7 @@ function advanceBatter(gameId) {
   liveCurrentBatterIdx = ((liveCurrentBatterIdx ?? 0) + 1) % ordered.length;
   liveSelectedResult = null;
   liveRbiCount = 0;
-  liveRunnerOut = false;
+ 
   liveDoublePlay = false;
   renderLiveGame();
 }
@@ -1607,7 +1646,7 @@ async function refreshLive() {
   liveCurrentBatterIdx = null;
   liveSelectedResult = null;
   liveRbiCount = 0;
-  liveRunnerOut = false;
+ 
   liveDoublePlay = false;
   await loadData();
   const live = liveGame();
@@ -2301,6 +2340,62 @@ function skipWhoScored() {
   if (_whoScoredCallback) { _whoScoredCallback(); _whoScoredCallback = null; }
 }
 
+// ── Who Was Put Out Modal ─────────────────────────────────────────
+function showWhoPutOutModal(onBaseAbs, fcAbId, callback) {
+  _runnerOutOnBase = onBaseAbs;
+  _runnerOutSelectedAbId = null;
+  _runnerOutFcAbId = fcAbId;
+  _runnerOutCallback = callback;
+  renderWhoPutOutModal();
+  openModal('modal-who-put-out');
+}
+
+function renderWhoPutOutModal() {
+  const el = document.getElementById('who-put-out-list');
+  if (!el) return;
+  if (_runnerOutOnBase.length === 0) {
+    el.innerHTML = '<div style="color:var(--text-light);text-align:center;padding:12px 0;">No runners on base</div>';
+    return;
+  }
+  el.innerHTML = _runnerOutOnBase.map(ab => {
+    const p = players.find(x => x.id === ab.player_id);
+    const sel = _runnerOutSelectedAbId === ab.id;
+    return `<div class="player-check-row ${sel?'checked':''}" onclick="selectRunnerOut(${ab.id})">
+      <div class="check-box">${sel?'✓':''}</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;">${esc(p?.name||'?')}${p?.number?` <span style="font-size:12px;color:var(--text-light);">#${p.number}</span>`:''}</div>
+        <div style="font-size:12px;color:var(--text-light);">${RESULT_FULL[ab.result]||ab.result}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectRunnerOut(abId) {
+  _runnerOutSelectedAbId = (_runnerOutSelectedAbId === abId) ? null : abId;
+  renderWhoPutOutModal();
+}
+
+async function confirmWhoPutOut() {
+  if (_runnerOutSelectedAbId && _runnerOutFcAbId) {
+    const runner = _runnerOutOnBase.find(ab => ab.id === _runnerOutSelectedAbId);
+    await sb.from('sb_at_bats').update({
+      runner_out: true,
+      runner_out_player_id: runner?.player_id ?? null
+    }).eq('id', _runnerOutFcAbId);
+  }
+  const cb = _runnerOutCallback;
+  _runnerOutOnBase = []; _runnerOutSelectedAbId = null; _runnerOutFcAbId = null; _runnerOutCallback = null;
+  closeModal('modal-who-put-out');
+  if (cb) await cb();
+}
+
+async function noPutOut() {
+  const cb = _runnerOutCallback;
+  _runnerOutOnBase = []; _runnerOutSelectedAbId = null; _runnerOutFcAbId = null; _runnerOutCallback = null;
+  closeModal('modal-who-put-out');
+  if (cb) await cb();
+}
+
 // ── Scorebook Export ──────────────────────────────────────────────
 function exportScorebookPrint(gameId) {
   const g = games.find(x=>x.id===gameId);
@@ -2417,7 +2512,9 @@ function exportScorebookPrint(gameId) {
           if (code==='HR') cls='hr';
           if (code==='BB') cls='bb';
           if (code==='K')  cls='k';
-          return `<span class="${cls}">${code}${a.rbi?'<sub>'+a.rbi+'</sub>':''}${a.scored?'<span class="scored-r">R</span>':''}</span>`;
+          const retiredP = (a.result==='fc' && a.runner_out_player_id) ? players.find(x=>x.id===a.runner_out_player_id) : null;
+          const retiredTag = retiredP ? `<span class="scored-r" style="color:#8a1a26;">†${retiredP.number||retiredP.name.split(' ')[0]}</span>` : '';
+          return `<span class="${cls}">${code}${retiredTag}${a.rbi?'<sub>'+a.rbi+'</sub>':''}${a.scored?'<span class="scored-r">R</span>':''}</span>`;
         }).join(' ');
         return `<td class="inn">${cells}</td>`;
       }).join('')}
@@ -2436,7 +2533,7 @@ function exportScorebookPrint(gameId) {
   <td class="stat-col avg">${totSt.avg}</td>
 </tr></tfoot>
 </table>
-<div style="font-size:11px;color:#6b5839;margin-top:8px;">Legend: 1B Single · 2B Double · 3B Triple · HR Home Run · BB Walk · K Strikeout · SF Sac Fly · FC Fielder's Choice · O Out · RBI shown as subscript · <span style="color:#4a7a3a;font-weight:700;">R</span> superscript = run scored</div>
+<div style="font-size:11px;color:#6b5839;margin-top:8px;">Legend: 1B Single · 2B Double · 3B Triple · HR Home Run · BB Walk · K Strikeout · SF Sac Fly · FC Fielder's Choice · O Out · RBI shown as subscript · <span style="color:#4a7a3a;font-weight:700;">R</span> = run scored · <span style="color:#8a1a26;font-weight:700;">†#</span> = runner retired (FC)</div>
 </body></html>`;
 
   const w = window.open('', '_blank');
@@ -2685,7 +2782,7 @@ function goBackBatter(gameId) {
   const ordered = gl.length ? [...gl.map(l => l.player_id), ...gp.filter(id => !gl.find(l => l.player_id === id))] : gp;
   if (!ordered.length) return;
   liveCurrentBatterIdx = ((liveCurrentBatterIdx ?? 0) - 1 + ordered.length) % ordered.length;
-  liveSelectedResult = null; liveRbiCount = 0; liveRunnerOut = false; liveDoublePlay = false;
+  liveSelectedResult = null; liveRbiCount = 0; liveDoublePlay = false;
   renderLiveGame();
 }
 
