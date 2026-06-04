@@ -735,6 +735,7 @@ let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
 let liveRunnerOut = false, liveDoublePlay = false;
 let _whoScoredOnBase = [], _whoScoredMarked = new Set(), _whoScoredCallback = null;
+let _rbiTargetAbId = null, _rbiIsHR = false;
 let editAbId = null, editAbGameId = null, editAbSelectedResult = null, editAbRbiCount = 0, editAbScored = false;
 let editAbFromLive = false;
 let isViewer = false, viewerInterval = null;
@@ -1415,22 +1416,12 @@ function renderLiveGame() {
         <span style="font-size:14px;font-weight:600;">Double play <span style="font-size:12px;color:var(--text-light);">(+1 out)</span></span>
       </label>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-      <div style="flex:1;text-align:center;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">RBI</div>
-        <div class="rbi-counter" style="margin:0;">
-          <button class="rbi-btn rbi-minus" onclick="liveAdjustRbi(-1)">−</button>
-          <div class="rbi-val" id="live-rbi-val">${liveRbiCount}</div>
-          <button class="rbi-btn rbi-plus" onclick="liveAdjustRbi(1)">+</button>
-        </div>
-      </div>
-      <div style="flex:1;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Inning</div>
-        <select class="form-select" id="live-inning" onchange="liveInning=this.value" style="text-align:center;padding:10px 8px;">
-          <option value="">—</option>
-          ${Array.from({length:12},(_,i)=>i+1).map(i=>`<option value="${i}"${liveInning===String(i)?' selected':''}>${ordinal(i)}</option>`).join('')}
-        </select>
-      </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-light);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">Inning</div>
+      <select class="form-select" id="live-inning" onchange="liveInning=this.value" style="text-align:center;padding:10px 8px;width:100%;">
+        <option value="">—</option>
+        ${Array.from({length:12},(_,i)=>i+1).map(i=>`<option value="${i}"${liveInning===String(i)?' selected':''}>${ordinal(i)}</option>`).join('')}
+      </select>
     </div>
     <div id="live-ab-error" style="color:var(--red);font-size:13px;margin-bottom:8px;display:none;"></div>
     <button class="btn btn-live" onclick="saveLiveAtBat(${curId},${live.id})">⚾ Save At-Bat</button>
@@ -1522,11 +1513,6 @@ function liveSelectResult(result) {
   if (dpToggle) { dpToggle.style.display = result === 'out' ? '' : 'none'; document.getElementById('live-dp-cb').checked = false; }
 }
 
-function liveAdjustRbi(delta) {
-  liveRbiCount = Math.max(0, Math.min(10, liveRbiCount + delta));
-  const el = document.getElementById('live-rbi-val');
-  if (el) el.textContent = liveRbiCount;
-}
 
 function setLiveBatter(idx) {
   liveCurrentBatterIdx = idx;
@@ -1550,7 +1536,7 @@ async function saveLiveAtBat(playerId, gameId) {
 
   const {data: newAbArr, error} = await sb.from('sb_at_bats').insert({
     game_id: gameId, player_id: playerId,
-    result: liveSelectedResult, rbi: liveRbiCount,
+    result: liveSelectedResult, rbi: 0,
     inning: innNum,
     runner_out: liveRunnerOut,
     double_play: liveDoublePlay,
@@ -1570,21 +1556,6 @@ async function saveLiveAtBat(playerId, gameId) {
       const nextInning = innNum + 1;
       liveInning = String(nextInning);
       showToast(`3 outs — Inning ${nextInning}!`);
-      // SF as 3rd out: a runner may still have scored — ask before advancing
-      if (liveSelectedResult === 'sf') {
-        const onBase = atBats.filter(ab =>
-          ab.game_id === gameId &&
-          ON_BASE.includes(ab.result) &&
-          !ab.scored &&
-          ab.id !== newAbId &&
-          (!innNum || ab.inning === innNum)
-        );
-        if (onBase.length > 0) {
-          _whoScoredCallback = () => advanceBatter(gameId);
-          showWhoScoredModal(onBase, new Set());
-          return;
-        }
-      }
       advanceBatter(gameId);
       return;
     }
@@ -1601,12 +1572,18 @@ async function saveLiveAtBat(playerId, gameId) {
       (!innNum || ab.inning === innNum)
     );
     if (onBase.length > 0) {
+      _rbiTargetAbId = newAbId; _rbiIsHR = isHR;
       _whoScoredCallback = () => advanceBatter(gameId);
       const preMarked = isHR ? new Set(onBase.map(ab => ab.id)) : new Set();
       showWhoScoredModal(onBase, preMarked);
       showToast(resultLabel + ' — saved!');
       return;
     }
+  }
+
+  // Solo HR: no runners on base but batter still gets 1 RBI
+  if (isHR && newAbId) {
+    await sb.from('sb_at_bats').update({ rbi: 1 }).eq('id', newAbId);
   }
 
   showToast(resultLabel + ' — saved!');
@@ -2308,12 +2285,18 @@ async function confirmWhoScored() {
   for (const abId of _whoScoredMarked) {
     await sb.from('sb_at_bats').update({scored: true}).eq('id', abId);
   }
+  if (_rbiTargetAbId) {
+    const rbi = _whoScoredMarked.size + (_rbiIsHR ? 1 : 0);
+    if (rbi > 0) await sb.from('sb_at_bats').update({ rbi }).eq('id', _rbiTargetAbId);
+    _rbiTargetAbId = null; _rbiIsHR = false;
+  }
   closeModal('modal-who-scored');
   await loadData();
   if (_whoScoredCallback) { _whoScoredCallback(); _whoScoredCallback = null; }
 }
 
 function skipWhoScored() {
+  _rbiTargetAbId = null; _rbiIsHR = false;
   closeModal('modal-who-scored');
   if (_whoScoredCallback) { _whoScoredCallback(); _whoScoredCallback = null; }
 }
