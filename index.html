@@ -559,14 +559,7 @@ body.dark .badge-cancelled{background:var(--paper-dk);color:var(--text-light);}
 <div class="modal-overlay" id="modal-start-live">
   <div class="modal">
     <div class="modal-title" id="start-live-title">Start Live Game</div>
-    <div style="text-align:right;margin-bottom:6px;">
-      <button class="btn btn-sm btn-outline" onclick="suggestStartLiveLineup()" style="font-size:12px;padding:5px 12px;">⚡ Suggest Lineup</button>
-    </div>
     <div id="start-live-body"></div>
-    <div style="margin-top:16px;">
-      <button class="btn btn-live" onclick="confirmStartLive()">🔴 Start Game</button>
-      <button class="btn btn-outline" onclick="closeModal('modal-start-live')" style="margin-top:8px;">Cancel</button>
-    </div>
   </div>
 </div>
 
@@ -745,7 +738,7 @@ let players = [], games = [], lineups = [], atBats = [], config = {}, gamePlayer
 let pinBuffer = '';
 let currentGameId = null, startLiveGameId = null, endLiveGameId = null;
 let _pendingRoster = [], _pendingSchedule = [];
-let _startLineup = [], _startBench = [];
+let _startLineup = [], _startBench = [], _startAttendees = [], _startStep = 'attendance';
 let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
 let liveDoublePlay = false;
@@ -2005,34 +1998,82 @@ function openStartLiveModal(gameId) {
   document.getElementById('start-live-title').textContent = `Start: vs ${g?.opponent || ''}`;
 
   const savedLu = lineups.filter(l => l.game_id === gameId).sort((a,b) => a.batting_order - b.batting_order);
-  const active  = players.filter(p => p.active);
+  const active  = players.filter(p => p.active).sort((a,b) => a.name.localeCompare(b.name));
   const inLuIds = new Set(savedLu.map(l => l.player_id));
 
-  if (savedLu.length) {
-    _startLineup = savedLu
-      .filter(l => active.find(p => p.id === l.player_id))
-      .map(l => {
-        const p = active.find(x => x.id === l.player_id);
-        return { player_id: l.player_id, name: p.name, number: p.number || '', position: l.position || '' };
-      });
-    _startBench = active
-      .filter(p => !inLuIds.has(p.id))
-      .sort((a,b) => a.name.localeCompare(b.name))
-      .map(p => ({ player_id: p.id, name: p.name, number: p.number || '' }));
-  } else {
-    _startLineup = active
-      .sort((a,b) => a.name.localeCompare(b.name))
-      .map(p => ({ player_id: p.id, name: p.name, number: p.number || '', position: '' }));
-    _startBench = [];
-  }
+  // Build attendees list; pre-check based on saved lineup if one exists, else check all
+  _startAttendees = active.map(p => ({
+    player_id: p.id, name: p.name, number: p.number || '',
+    attending: savedLu.length ? inLuIds.has(p.id) : true
+  }));
 
-  renderStartLineup();
+  // Preserve saved lineup order for step 2
+  _startLineup = savedLu
+    .filter(l => active.find(p => p.id === l.player_id))
+    .map(l => {
+      const p = active.find(x => x.id === l.player_id);
+      return { player_id: l.player_id, name: p.name, number: p.number || '', position: l.position || '' };
+    });
+  _startBench = [];
+  _startStep = 'attendance';
+
+  renderStartModal();
   openModal('modal-start-live');
+}
+
+function renderStartModal() {
+  if (_startStep === 'attendance') renderAttendanceStep();
+  else renderStartLineup();
+}
+
+function renderAttendanceStep() {
+  const el = document.getElementById('start-live-body');
+  const count = _startAttendees.filter(x => x.attending).length;
+  let html = `<div style="font-size:13px;color:var(--text-light);margin-bottom:10px;">Who's playing today? <span style="font-weight:700;color:var(--text);">${count} selected</span></div>`;
+  html += _startAttendees.map(item =>
+    `<div class="player-check-row ${item.attending?'checked':''}" onclick="toggleAttendee(${item.player_id})" style="margin-bottom:6px;">
+      <div class="check-box">${item.attending?'✓':''}</div>
+      <div style="flex:1;font-weight:700;font-size:14px;">${esc(item.name)}${item.number?` <span style="font-size:11px;color:var(--text-light);">#${item.number}</span>`:''}</div>
+    </div>`
+  ).join('');
+  html += `<div style="margin-top:14px;">
+    <button class="btn btn-primary" onclick="proceedToLineup()" ${count===0?'disabled':''}>Set Batting Order →</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-start-live')" style="margin-top:8px;">Cancel</button>
+  </div>`;
+  el.innerHTML = html;
+}
+
+function toggleAttendee(pid) {
+  const item = _startAttendees.find(x => x.player_id === pid);
+  if (item) { item.attending = !item.attending; renderAttendanceStep(); }
+}
+
+function proceedToLineup() {
+  const attending = _startAttendees.filter(x => x.attending);
+  const attendingIds = new Set(attending.map(x => x.player_id));
+  // Preserve existing saved order for attending players; append any new attendees at bottom
+  const savedOrder = _startLineup.filter(x => attendingIds.has(x.player_id));
+  const savedIds = new Set(savedOrder.map(x => x.player_id));
+  const added = attending.filter(x => !savedIds.has(x.player_id))
+    .map(x => ({ player_id: x.player_id, name: x.name, number: x.number, position: '' }));
+  _startLineup = [...savedOrder, ...added];
+  _startBench = [];
+  _startStep = 'lineup';
+  renderStartLineup();
+}
+
+function goBackToAttendance() {
+  _startStep = 'attendance';
+  renderAttendanceStep();
 }
 
 function renderStartLineup() {
   const el = document.getElementById('start-live-body');
-  let html = `<div class="sll-section-label">Batting Order</div>`;
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <button class="btn btn-sm btn-outline" onclick="goBackToAttendance()" style="font-size:12px;padding:5px 10px;">← Attendance</button>
+    <button class="btn btn-sm btn-outline" onclick="suggestStartLiveLineup()" style="font-size:12px;padding:5px 10px;">⚡ Suggest</button>
+  </div>
+  <div class="sll-section-label">Batting Order</div>`;
 
   if (_startLineup.length) {
     _startLineup.forEach((item, idx) => {
@@ -2069,6 +2110,10 @@ function renderStartLineup() {
     });
   }
 
+  html += `<div style="margin-top:14px;">
+    <button class="btn btn-live" onclick="confirmStartLive()">🔴 Start Game</button>
+    <button class="btn btn-outline" onclick="closeModal('modal-start-live')" style="margin-top:8px;">Cancel</button>
+  </div>`;
   el.innerHTML = html;
 }
 
