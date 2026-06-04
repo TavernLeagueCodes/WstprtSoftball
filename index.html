@@ -559,6 +559,9 @@ body.dark .badge-cancelled{background:var(--paper-dk);color:var(--text-light);}
 <div class="modal-overlay" id="modal-start-live">
   <div class="modal">
     <div class="modal-title" id="start-live-title">Start Live Game</div>
+    <div style="text-align:right;margin-bottom:6px;">
+      <button class="btn btn-sm btn-outline" onclick="suggestStartLiveLineup()" style="font-size:12px;padding:5px 12px;">⚡ Suggest Lineup</button>
+    </div>
     <div id="start-live-body"></div>
     <div style="margin-top:16px;">
       <button class="btn btn-live" onclick="confirmStartLive()">🔴 Start Game</button>
@@ -2224,7 +2227,7 @@ function renderLineupEditor() {
       </select>
     </div>`;
   }
-  html += `</div></div><button class="btn btn-primary" onclick="saveLineup(${gameId},${SLOTS})">Save Lineup</button>`;
+  html += `</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-outline" onclick="suggestAdminLineup(${gameId},${SLOTS})" style="flex:1;">⚡ Suggest Lineup</button><button class="btn btn-primary" onclick="saveLineup(${gameId},${SLOTS})" style="flex:1;">Save Lineup</button></div>`;
   el.innerHTML = html;
 }
 
@@ -2238,6 +2241,68 @@ async function saveLineup(gameId, slots) {
   }
   if (rows.length) await sb.from('sb_lineups').insert(rows);
   await loadData(); showToast('Lineup saved');
+}
+
+// ── Suggest Lineup ────────────────────────────────────────────────
+function buildSuggestedOrder(playerIds) {
+  const MIN_AB = 5;
+
+  const withStats = playerIds.map(pid => {
+    const st = calcStats(atBats.filter(a => a.player_id === pid));
+    const obpNum = st.obp === '.---' ? 0 : parseFloat('0' + st.obp);
+    const opsNum = st.ops === '.---' ? 0 : parseFloat('0' + st.ops);
+    return { pid, st, obpNum, opsNum };
+  });
+
+  const qualified   = withStats.filter(x => x.st.ab >= MIN_AB);
+  const subThreshold = withStats.filter(x => x.st.ab < MIN_AB);
+
+  // Sort qualified by OPS descending; ties broken by OBP
+  qualified.sort((a, b) => b.opsNum - a.opsNum || b.obpNum - a.obpNum);
+
+  // Within top 5 OPS, move the best-OBP player to slot 1
+  const topN = Math.min(5, qualified.length);
+  if (topN > 1) {
+    let leadIdx = 0;
+    for (let i = 1; i < topN; i++) {
+      if (qualified[i].obpNum > qualified[leadIdx].obpNum) leadIdx = i;
+    }
+    if (leadIdx !== 0) {
+      const [leadoff] = qualified.splice(leadIdx, 1);
+      qualified.unshift(leadoff);
+    }
+  }
+
+  // Sub-threshold preserves their current relative order
+  return [...qualified.map(x => x.pid), ...subThreshold.map(x => x.pid)];
+}
+
+function suggestStartLiveLineup() {
+  const suggested = buildSuggestedOrder(_startLineup.map(x => x.player_id));
+  _startLineup = suggested.map(pid => _startLineup.find(x => x.player_id === pid));
+  renderStartLineup();
+  const sub = _startLineup.filter(item => {
+    const st = calcStats(atBats.filter(a => a.player_id === item.player_id));
+    return st.ab < 5;
+  }).length;
+  showToast(`Lineup suggested${sub ? ' — ' + sub + ' player' + (sub > 1 ? 's' : '') + ' under 5 AB at bottom' : ''}`);
+}
+
+function suggestAdminLineup(gameId, slots) {
+  const gPids = gamePlayers.filter(gp => gp.game_id === gameId).map(gp => gp.player_id);
+  const pool = (gPids.length
+    ? players.filter(p => p.active && gPids.includes(p.id))
+    : players.filter(p => p.active)
+  ).map(p => p.id);
+  if (!pool.length) { showToast('No players found for this game'); return; }
+
+  const suggested = buildSuggestedOrder(pool);
+  for (let i = 1; i <= slots; i++) {
+    const sel = document.getElementById('lu-player-' + i);
+    if (sel) sel.value = i <= suggested.length ? String(suggested[i - 1]) : '';
+  }
+  const sub = suggested.filter(pid => calcStats(atBats.filter(a => a.player_id === pid)).ab < 5).length;
+  showToast(`Lineup suggested${sub ? ' — ' + sub + ' player' + (sub > 1 ? 's' : '') + ' under 5 AB at bottom' : ''} — review and save`);
 }
 
 // ── Admin: Settings ───────────────────────────────────────────────
