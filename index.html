@@ -743,6 +743,7 @@ let _adminAttendees = [], _adminGameId = null;
 let _adminSubTab = 'roster';
 let liveCurrentBatterIdx = null, liveSelectedResult = null, liveRbiCount = 0, liveInning = '';
 let liveDoublePlay = false;
+let liveActiveTab = 'controls';
 let _whoScoredOnBase = [], _whoScoredMarked = new Set(), _whoScoredCallback = null;
 let _rbiTargetAbId = null, _rbiIsHR = false;
 let _runnerOutOnBase = [], _runnerOutSelectedAbId = null, _runnerOutFcAbId = null, _runnerOutCallback = null;
@@ -1368,6 +1369,19 @@ function renderLiveGame() {
 
   // Scoreboard
   html += renderScoreboardHtml(live, isAdmin || isCoach);
+
+  // Tab bar (admin/coach only)
+  if (isAdmin || isCoach) {
+    html += `<div style="display:flex;gap:0;margin-bottom:12px;border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--border);">
+      <button onclick="switchLiveTab('controls')" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:${liveActiveTab==='controls'?'var(--topps-ink)':'var(--white)'};color:${liveActiveTab==='controls'?'var(--topps-mustard)':'var(--text)'};border:none;cursor:pointer;font-family:inherit;letter-spacing:.04em;border-right:1.5px solid var(--border);">Live Scoring</button>
+      <button onclick="switchLiveTab('box')" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:${liveActiveTab==='box'?'var(--topps-ink)':'var(--white)'};color:${liveActiveTab==='box'?'var(--topps-mustard)':'var(--text)'};border:none;cursor:pointer;font-family:inherit;letter-spacing:.04em;">Box Score</button>
+    </div>`;
+    if (liveActiveTab === 'box') {
+      html += renderBoxScoreHtml(live, orderedIds);
+      el.innerHTML = html;
+      return;
+    }
+  }
 
   // Current batter hero card
   html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;">
@@ -2208,8 +2222,9 @@ async function confirmAddLatePlayer(pid) {
 
 function openEndGameModal(gameId) {
   endLiveGameId = gameId;
-  document.getElementById('end-our-score').value = '';
-  document.getElementById('end-opp-score').value = '';
+  const { ourTotal, oppTotal } = getLiveScoreboard(gameId);
+  document.getElementById('end-our-score').value = ourTotal ?? '';
+  document.getElementById('end-opp-score').value = oppTotal ?? '';
   document.getElementById('end-notes').value = '';
   openModal('modal-end-game');
 }
@@ -2926,6 +2941,65 @@ function getLiveScoreboard(gameId) {
   return { ourRuns, oppRuns, innings, ourTotal, oppTotal };
 }
 
+function switchLiveTab(tab) {
+  liveActiveTab = tab;
+  renderLiveGame();
+}
+
+function renderBoxScoreHtml(game, orderedIds) {
+  const gAbs    = atBats.filter(a => a.game_id === game.id);
+  const gLineup = lineups.filter(l => l.game_id === game.id).sort((a,b) => a.batting_order - b.batting_order);
+  const thStyle = 'padding:5px 4px;text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--text-light);text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap;';
+  let rows = '', totAB=0, totR=0, totH=0, tot2b=0, tot3b=0, totHR=0, totRBI=0, totBB=0, totK=0;
+  orderedIds.forEach((pid, idx) => {
+    const p  = players.find(x => x.id === pid);
+    if (!p) return;
+    const st   = calcStats(gAbs.filter(a => a.player_id === pid));
+    const spot = gLineup.find(l => l.player_id === pid);
+    totAB+=st.ab; totR+=st.runs; totH+=st.h; tot2b+=st.d2; tot3b+=st.t3; totHR+=st.hr; totRBI+=st.rbi; totBB+=st.bb; totK+=st.k;
+    rows += `<tr style="border-bottom:1px solid #fbedc4;">
+      <td style="padding:6px 4px;color:var(--text-light);font-size:11px;">${spot?spot.batting_order:idx+1}</td>
+      <td style="padding:6px 8px 6px 4px;font-weight:600;font-size:13px;white-space:nowrap;">${esc(p.name)}${p.number?` <span style="font-size:10px;color:var(--text-light);">#${p.number}</span>`:''}</td>
+      <td style="padding:6px 4px;text-align:center;">${st.ab}</td>
+      <td style="padding:6px 4px;text-align:center;${st.runs?'font-weight:700;color:var(--green);':''}">${st.runs||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;${st.h?'font-weight:700;':''}">${st.h||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;">${st.d2||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;">${st.t3||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;${st.hr?'font-weight:700;color:var(--live);':''}">${st.hr||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;${st.rbi?'font-weight:700;color:#8a1a26;':''}">${st.rbi||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;">${st.bb||'—'}</td>
+      <td style="padding:6px 4px;text-align:center;">${st.k||'—'}</td>
+    </tr>`;
+  });
+  return `<div class="section-card" style="margin-bottom:14px;">
+    <div class="section-header"><span class="sh-title">Box Score</span></div>
+    <div style="overflow-x:auto;padding:0 4px 4px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="${thStyle}text-align:left;padding-left:4px;">#</th>
+          <th style="${thStyle}text-align:left;min-width:80px;">Player</th>
+          <th style="${thStyle}">AB</th><th style="${thStyle}">R</th><th style="${thStyle}">H</th>
+          <th style="${thStyle}">2B</th><th style="${thStyle}">3B</th><th style="${thStyle}">HR</th>
+          <th style="${thStyle}">RBI</th><th style="${thStyle}">BB</th><th style="${thStyle}">K</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="border-top:2px solid var(--border);background:#f9f0d9;">
+          <td colspan="2" style="padding:6px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-light);">Totals</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${totAB}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;${totR?'color:var(--green);':''}">${totR||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${totH||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${tot2b||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${tot3b||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${totHR||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${totRBI||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${totBB||'—'}</td>
+          <td style="padding:6px 4px;text-align:center;font-weight:700;">${totK||'—'}</td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
 function renderScoreboardHtml(game, editable) {
   const { ourRuns, oppRuns, innings, ourTotal, oppTotal } = getLiveScoreboard(game.id);
   const teamName = config.team_name || 'MinuteMen';
@@ -2949,6 +3023,18 @@ function renderScoreboardHtml(game, editable) {
         <th style="background:#231a10;">R</th>
       </tr></thead>
       <tbody>
+        ${game.home_away === 'home' ? `
+        <tr>
+          <td style="border:1px solid var(--border);">${esc(game.opponent)}</td>
+          ${inningCells.map(c => c.oppCell).join('')}
+          <td class="opp-total" style="border:1px solid var(--border);color:${oppTotal>ourTotal?'var(--red)':oppTotal<ourTotal?'var(--text-light)':'inherit'};">${oppTotal}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid var(--border);color:var(--blue);">${esc(teamName)}</td>
+          ${inningCells.map(c => c.ourCell).join('')}
+          <td class="our-total" style="border:1px solid var(--border);">${ourTotal}</td>
+        </tr>
+        ` : `
         <tr>
           <td style="border:1px solid var(--border);color:var(--blue);">${esc(teamName)}</td>
           ${inningCells.map(c => c.ourCell).join('')}
@@ -2959,6 +3045,7 @@ function renderScoreboardHtml(game, editable) {
           ${inningCells.map(c => c.oppCell).join('')}
           <td class="opp-total" style="border:1px solid var(--border);color:${oppTotal>ourTotal?'var(--red)':oppTotal<ourTotal?'var(--text-light)':'inherit'};">${oppTotal}</td>
         </tr>
+        `}
       </tbody>
     </table></div>
   </div>`;
@@ -3106,6 +3193,21 @@ function renderViewerContent() {
     <div style="text-align:right;"><div style="font-family:var(--font-display);font-size:10px;font-weight:400;color:var(--topps-mustard);letter-spacing:.14em;text-transform:uppercase;">Out${curOuts!==1?'s':''}</div><div style="font-family:var(--font-display);font-size:22px;font-weight:400;color:var(--white);">${curOuts}</div></div>
   </div>`;
 
+  // Previous at-bat
+  const prevAb = [...gAbs].sort((a,b) => b.id - a.id)[0];
+  if (prevAb) {
+    const prevP = players.find(x => x.id === prevAb.player_id);
+    html += `<div style="background:var(--white);border-radius:var(--radius);padding:10px 16px;margin-bottom:10px;box-shadow:var(--shadow);border-left:3px solid var(--border);">
+      <div style="font-size:10px;font-weight:700;color:var(--text-light);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Last At-Bat</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:16px;font-weight:700;">${prevP?esc(prevP.name):'?'} — ${RESULT_FULL[prevAb.result]||prevAb.result}</span>
+        ${prevAb.scored?`<span style="font-size:12px;font-weight:700;background:#f0e3b3;color:var(--green);padding:2px 8px;border-radius:10px;">R</span>`:''}
+        ${prevAb.rbi?`<span style="font-size:12px;font-weight:700;background:#f9e8a8;color:#8a1a26;padding:2px 8px;border-radius:10px;">${prevAb.rbi} RBI</span>`:''}
+        ${prevAb.inning?`<span style="font-size:12px;color:var(--text-light);">Inn ${prevAb.inning}</span>`:''}
+      </div>
+    </div>`;
+  }
+
   // Current batter
   if (cb) {
     html += `<div style="background:var(--live);color:white;border-radius:var(--radius);padding:14px 18px;margin-bottom:10px;">
@@ -3128,21 +3230,8 @@ function renderViewerContent() {
     </div>`;
   }
 
-  // Recent plays
-  const recent = [...gAbs].reverse().slice(0, 6);
-  if (recent.length) {
-    html += `<div class="section-card"><div class="section-header"><span class="sh-title">Recent Plays</span></div><div style="padding:8px 16px;">`;
-    recent.forEach(a => {
-      const p = players.find(x => x.id === a.player_id);
-      html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #fbedc4;">
-        <span style="flex:1;font-size:14px;font-weight:600;">${p?esc(p.name):'?'} — ${RESULT_FULL[a.result]||a.result}</span>
-        ${a.scored?`<span style="font-size:12px;font-weight:700;background:#f0e3b3;color:var(--green);padding:2px 8px;border-radius:10px;">R</span>`:''}
-        ${a.rbi?`<span style="font-size:12px;font-weight:700;background:#f9e8a8;color:#8a1a26;padding:2px 8px;border-radius:10px;">${a.rbi} RBI</span>`:''}
-        ${a.inning?`<span style="font-size:12px;color:var(--text-light);">Inn ${a.inning}</span>`:''}
-      </div>`;
-    });
-    html += '</div></div>';
-  }
+  // Box score
+  if (ordered.length) html += renderBoxScoreHtml(live, ordered);
 
   html += `<div style="text-align:center;font-size:12px;color:var(--text-light);padding:16px 0;">Auto-updating every 10 seconds</div>`;
   el.innerHTML = html;
